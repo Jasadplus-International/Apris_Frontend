@@ -5,6 +5,7 @@ export default function Sidebar({ setActivePage, activePage }) {
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'students', label: 'Student Registry', icon: '🎓' },
     { id: 'results', label: 'Result Entry', icon: '📝' },
+    { id: 'transcript', label: 'Transcripts', icon: '📜' },
     { id: 'broadsheet', label: 'BroadSheet Mgr', icon: '📑' },
   ];
 
