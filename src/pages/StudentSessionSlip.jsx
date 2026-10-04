@@ -1,135 +1,117 @@
 import React, { useState, useEffect } from 'react';
 
-const StudentSessionSlip = ({ studentId, sessionId, onBack }) => {
+export default function StudentSessionSlip({ studentId, sessionId, onBack }) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchSlip = async () => {
+      if (!studentId || !sessionId) {
+        setError("Missing student or session information.");
+        setIsLoading(false);
+        return;
+      }
       try {
-        // Use the updated transcript endpoint with session_id filter
         const response = await fetch(`http://localhost:8000/api/academic/transcript/${studentId}?session_id=${sessionId}`);
-        if (!response.ok) throw new Error('Failed to fetch session record');
+        if (!response.ok) throw new Error(await response.text());
         const result = await response.json();
         setData(result);
       } catch (err) {
         setError(err.message);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-
-    if (studentId && sessionId) {
-      fetchSlip();
-    }
+    fetchSlip();
   }, [studentId, sessionId]);
 
-  if (loading) return <div className="text-center py-10">Loading result slip...</div>;
-  if (error) return <div className="text-center py-10 text-red-600">{error}</div>;
-  if (!data) return <div className="text-center py-10">No data available.</div>;
-
-  // We expect only one session in the list because of the backend filter
-  const sessionData = data.sessions[0];
-
-  if (!sessionData) {
-    return <div className="text-center py-10">No results found for this session.</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full w-full text-slate-500">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Generating sessional slip...</p>
+        </div>
+      </div>
+    );
   }
 
+  if (error) {
+    return (
+      <div className="text-center p-10">
+        <p className="text-red-500 mb-4">{error}</p>
+        <button onClick={onBack} className="px-4 py-2 bg-slate-200 rounded-md">Go Back</button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-3xl mx-auto space-y-6">
       <button
         onClick={onBack}
-        className="mb-6 text-blue-600 hover:text-blue-800 flex items-center gap-2 font-medium transition"
+        className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 transition mb-4"
       >
-        ← Back to Full Transcript
+        ← Back to Transcript
       </button>
 
-      <div className="bg-white p-10 rounded-lg shadow-lg border border-slate-200">
+      <div className="bg-white p-12 rounded-sm shadow-xl border border-slate-300 text-slate-900 print:shadow-none print:border-none">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-slate-900 uppercase mb-2">Sessional Result Slip</h1>
-          <p className="text-slate-500 italic">{sessionData.session}</p>
-          <div className="mt-4 h-1 w-32 bg-blue-600 mx-auto"></div>
+        <div className="text-center border-b-2 border-slate-800 pb-6 mb-8">
+          <h1 className="text-2xl font-bold uppercase tracking-wide">Sessional Result Slip</h1>
+          <p className="text-md text-slate-600 mt-1">University Management System (ARPIS)</p>
         </div>
 
-        {/* Student Info */}
-        <div className="grid grid-cols-2 gap-6 mb-10 p-6 bg-slate-50 rounded-xl border border-slate-100">
-          <div>
-            <p className="text-xs text-slate-400 uppercase font-semibold">Student Name</p>
-            <p className="text-lg font-bold text-slate-800">{data.profile.name}</p>
+        {/* Profile */}
+        <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
+          <div className="space-y-1">
+            <p><span className="font-bold uppercase">Student:</span> {data.profile.name}</p>
+            <p><span className="font-bold uppercase">Matric No:</span> {data.profile.matric_no}</p>
           </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase font-semibold">Matriculation Number</p>
-            <p className="text-lg font-bold text-slate-800">{data.profile.matric_no}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase font-semibold">Department</p>
-            <p className="text-lg font-bold text-slate-800">{data.profile.department}</p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase font-semibold">Date of Issue</p>
-            <p className="text-lg font-bold text-slate-800">{new Date().toLocaleDateString()}</p>
+          <div className="space-y-1 text-right">
+            <p><span className="font-bold uppercase">Dept:</span> {data.profile.department}</p>
+            <p><span className="font-bold uppercase">Session:</span> {data.sessions[0]?.session}</p>
           </div>
         </div>
 
         {/* Results Table */}
-        <div className="overflow-hidden rounded-lg border border-slate-200 mb-10">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50">
-              <tr className="text-xs uppercase text-slate-600 font-semibold">
-                <th className="p-3 border-b">Course Code</th>
-                <th className="p-3 border-b">Course Title</th>
-                <th className="p-3 border-b text-center">Units</th>
-                <th className="p-3 border-b text-center">Score</th>
-                <th className="p-3 border-b text-center">Grade</th>
-                <th className="p-3 border-b text-center">Point</th>
+        <div className="space-y-4">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead className="bg-slate-50 border-y border-slate-300">
+              <tr>
+                <th className="p-2 font-bold uppercase">Code</th>
+                <th className="p-2 font-bold uppercase">Course Title</th>
+                <th className="p-2 font-bold uppercase text-center">Unit</th>
+                <th className="p-2 font-bold uppercase text-center">Score</th>
+                <th className="p-2 font-bold uppercase text-center">Grade</th>
               </tr>
             </thead>
             <tbody>
-              {sessionData.results.map((res, idx) => (
-                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                  <td className="p-3 font-mono text-sm">{res.course_code}</td>
-                  <td className="p-3 text-sm text-slate-600">{res.description}</td>
-                  <td className="p-3 text-center text-sm">{res.units}</td>
-                  <td className="p-3 text-center text-sm">{res.score}</td>
-                  <td className="p-3 text-center">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      res.grade === 'F' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                    }`}>
-                      {res.grade}
-                    </span>
-                  </td>
-                  <td className="p-3 text-center text-sm">{res.point}</td>
+              {data.sessions[0]?.results.map((res, idx) => (
+                <tr key={idx} className="border-b border-slate-200">
+                  <td className="p-2 font-mono">{res.course_code}</td>
+                  <td className="p-2">{res.description}</td>
+                  <td className="p-2 text-center">{res.units}</td>
+                  <td className="p-2 text-center">{res.score}</td>
+                  <td className="p-2 text-center font-bold">{res.grade}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="font-bold bg-slate-50">
+                <td colSpan="2" className="p-2 text-right uppercase">Session GPA:</td>
+                <td colSpan="3" className="p-2 text-center text-blue-700 text-lg">{data.sessions[0]?.gpa}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
 
-        {/* Summary Box */}
-        <div className="p-6 bg-indigo-50 rounded-xl border border-indigo-100 flex justify-between items-center">
-          <div>
-            <p className="text-sm text-indigo-600 font-semibold uppercase">Session GPA</p>
-            <p className="text-4xl font-black text-indigo-900">{sessionData.gpa}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-indigo-600 font-semibold uppercase">Total Units Registered</p>
-            <p className="text-2xl font-bold text-indigo-900">{sessionData.total_units}</p>
-          </div>
+        <div className="mt-12 text-center text-xs text-slate-400 italic">
+          This is an electronically generated document and does not require a signature.
         </div>
-      </div>
-
-      <div className="text-center mt-8 no-print">
-        <button
-          onClick={() => window.print()}
-          className="bg-slate-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-slate-900 transition shadow-md"
-        >
-          Print Result Slip
-        </button>
       </div>
     </div>
   );
-};
-
-export default StudentSessionSlip;
+}

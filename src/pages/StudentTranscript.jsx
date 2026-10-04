@@ -1,149 +1,159 @@
 import React, { useState, useEffect } from 'react';
 
-const StudentTranscript = ({ setSlipData, setActivePage }) => {
+export default function StudentTranscript({ setSlipData, setActivePage }) {
   const [studentId, setStudentId] = useState('');
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchTranscript = async () => {
     if (!studentId) return;
-    setLoading(true);
-    setError('');
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`http://localhost:8000/api/academic/transcript/${studentId}`);
-      if (!response.ok) throw new Error('Student not found or server error');
+      // encodeURIComponent handles the slashes in matric numbers (e.g., 13/PDBED/30287)
+      const encodedId = encodeURIComponent(studentId);
+      const response = await fetch(`http://localhost:8000/api/academic/transcript/${encodedId}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server Error (${response.status}): ${errorText}`);
+      }
       const result = await response.json();
       setData(result);
     } catch (err) {
-      setError(err.message);
+      setError(`Network/System Error: ${err.message}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleViewSlip = (sessionId) => {
-    if (setSlipData) {
-      setSlipData({ studentId, sessionId });
-      setActivePage('session-slip');
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full w-full text-slate-500">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Fetching academic records...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-800">Academic Transcript</h1>
-        <div className="flex gap-2">
+    <div className="max-w-5xl mx-auto space-y-8">
+      {/* Search Header */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex gap-4 items-end">
+        <div className="flex-1 space-y-2">
+          <label className="block text-sm font-medium text-slate-700">Student ID / UUID</label>
           <input
-            className="border p-2 rounded-md bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="Enter Student UUID"
+            type="text"
+            className="w-full p-2 border rounded-md bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+            placeholder="Enter Student UUID..."
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
           />
-          <button
-            onClick={fetchTranscript}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700 transition"
-          >
-            Generate
-          </button>
         </div>
+        <button
+          onClick={fetchTranscript}
+          className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 transition shadow-md"
+        >
+          Generate Transcript
+        </button>
       </div>
 
-      {loading && <div className="text-center py-10">Loading record...</div>}
-      {error && <div className="bg-red-100 text-red-600 p-4 rounded-lg">{error}</div>}
+      {error && (
+        <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-200">
+          Error: {error}
+        </div>
+      )}
 
       {data && (
-        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-5xl mx-auto">
-          {/* Header Section */}
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-slate-900 uppercase">Official Academic Transcript</h2>
-            <p className="text-slate-500 italic">Verified Academic Record of Student Performance</p>
+        <div className="bg-white p-10 rounded-sm shadow-lg border border-slate-300 text-slate-900 print:shadow-none print:border-none">
+          {/* Institutional Header */}
+          <div className="text-center border-b-2 border-slate-800 pb-6 mb-8">
+            <h1 className="text-3xl font-bold uppercase tracking-wide">Official Academic Transcript</h1>
+            <p className="text-lg text-slate-600 mt-1">University Management System (ARPIS)</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-8 p-4 bg-slate-50 rounded-lg border border-slate-100">
-            <div>
-              <p className="text-xs text-slate-400 uppercase font-semibold">Student Name</p>
-              <p className="text-lg font-bold text-slate-800">{data.profile.name}</p>
+          {/* Student Profile Grid */}
+          <div className="grid grid-cols-2 gap-8 mb-10 text-sm">
+            <div className="space-y-2">
+              <p><span className="font-bold uppercase">Student Name:</span> {data.profile.name}</p>
+              <p><span className="font-bold uppercase">Matriculation No:</span> {data.profile.matric_no}</p>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 uppercase font-semibold">Matriculation Number</p>
-              <p className="text-lg font-bold text-slate-800">{data.profile.matric_no}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 uppercase font-semibold">Department</p>
-              <p className="text-lg font-bold text-slate-800">{data.profile.department}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 uppercase font-semibold">Date of Issue</p>
-              <p className="text-lg font-bold text-slate-800">{new Date().toLocaleDateString()}</p>
+            <div className="space-y-2 text-right">
+              <p><span className="font-bold uppercase">Department:</span> {data.profile.department}</p>
+              <p><span className="font-bold uppercase">Date of Issue:</span> {new Date().toLocaleDateString()}</p>
             </div>
           </div>
 
-          {/* Session Groups */}
-          <div className="space-y-8">
+          {/* Academic Sessions */}
+          <div className="space-y-12">
             {data.sessions.map((sess, idx) => (
-              <div key={idx} className="space-y-3">
-                <div className="flex justify-between items-center border-b-2 border-slate-200 pb-1">
-                  <h3 className="text-lg font-bold text-slate-700">{sess.session}</h3>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-slate-500">Session GPA: {sess.gpa || 'N/A'}</span>
-                    <button
-                      onClick={() => handleViewSlip(sess.session)}
-                      className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition font-semibold"
-                    >
-                      View Slip
-                    </button>
-                  </div>
+              <div key={idx} className="space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-400 pb-2">
+                  <h2 className="text-xl font-bold text-slate-800 uppercase">Session: {sess.session}</h2>
+                  <button
+                    onClick={() => {
+                      setSlipData({ studentId, sessionId: sess.session });
+                      setActivePage('session-slip');
+                    }}
+                    className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded border border-slate-300 transition print:hidden"
+                  >
+                    View Sessional Slip
+                  </button>
                 </div>
-                <table className="w-full text-left border-collapse">
+
+                <table className="w-full text-sm text-left border-collapse">
                   <thead>
-                    <tr className="text-xs uppercase text-slate-500 font-semibold bg-slate-50">
-                      <th className="p-2 border-b">Course Code</th>
-                      <th className="p-2 border-b">Course Title</th>
-                      <th className="p-2 border-b text-center">Units</th>
-                      <th className="p-2 border-b text-center">Score</th>
-                      <th className="p-2 border-b text-center">Grade</th>
-                      <th className="p-2 border-b text-center">Point</th>
+                    <tr className="bg-slate-50 border-y border-slate-300">
+                      <th className="p-2 font-bold uppercase">Course Code</th>
+                      <th className="p-2 font-bold uppercase">Course Title</th>
+                      <th className="p-2 font-bold uppercase text-center">Unit</th>
+                      <th className="p-2 font-bold uppercase text-center">Score</th>
+                      <th className="p-2 font-bold uppercase text-center">Grade</th>
+                      <th className="p-2 font-bold uppercase text-center">Point</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sess.results.map((res, rIdx) => (
-                      <tr key={rIdx} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td className="p-2 font-mono text-sm">{res.course_code}</td>
-                        <td className="p-2 text-sm text-slate-600">{res.description}</td>
-                        <td className="p-2 text-center text-sm">{res.units}</td>
-                        <td className="p-2 text-center text-sm">{res.score}</td>
-                        <td className="p-2 text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${
-                            res.grade === 'F' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                          }`}>
-                            {res.grade}
-                          </span>
-                        </td>
-                        <td className="p-2 text-center text-sm">{res.point}</td>
+                      <tr key={rIdx} className="border-b border-slate-200 hover:bg-slate-50">
+                        <td className="p-2 font-mono">{res.course_code}</td>
+                        <td className="p-2">{res.description}</td>
+                        <td className="p-2 text-center">{res.units}</td>
+                        <td className="p-2 text-center">{res.score}</td>
+                        <td className="p-2 text-center font-bold">{res.grade}</td>
+                        <td className="p-2 text-center">{res.grade_point}</td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="font-bold bg-slate-50">
+                      <td colSpan="2" className="p-2 text-right uppercase">Session Total Units:</td>
+                      <td className="p-2 text-center">{sess.total_units}</td>
+                      <td colSpan="2" className="p-2 text-right uppercase">Session GPA:</td>
+                      <td className="p-2 text-center text-blue-700">{sess.gpa}</td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             ))}
           </div>
 
           {/* Final Summary */}
-          <div className="mt-12 p-6 bg-blue-50 rounded-xl border border-blue-100 flex justify-between items-center">
+          <div className="mt-12 p-6 bg-slate-50 border-t-4 border-slate-800 flex justify-between items-center">
             <div>
-              <p className="text-sm text-blue-600 font-semibold uppercase">Cumulative Grade Point Average</p>
-              <p className="text-4xl font-black text-blue-900">{data.summary.cgpa.toFixed(2)}</p>
+              <p className="text-sm text-slate-500 uppercase font-bold">Cumulative Grade Point Average</p>
+              <p className="text-4xl font-black text-slate-900">{data.cgpa}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-blue-600 font-semibold uppercase">Total Units Earned</p>
-              <p className="text-2xl font-bold text-blue-900">{data.summary.total_units}</p>
+              <p className="text-sm text-slate-500 uppercase font-bold">Academic Standing</p>
+              <p className="text-xl font-bold text-blue-800">
+                {data.cgpa >= 4.5 ? 'First Class' : data.cgpa >= 3.5 ? 'Second Class Upper' : data.cgpa >= 2.4 ? 'Second Class Lower' : 'Pass'}
+              </p>
             </div>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-export default StudentTranscript;
+}
