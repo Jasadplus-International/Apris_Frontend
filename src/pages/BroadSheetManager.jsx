@@ -13,26 +13,24 @@ export default function BroadSheetManager() {
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewData, setPreviewData] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [deptRes, sessRes, courseRes, levelRes] = await Promise.all([
+        const [deptRes, sessRes, levelRes] = await Promise.all([
           fetch('http://localhost:8000/api/departments').catch(() => null),
           fetch('http://localhost:8000/api/results/sessions').catch(() => null),
-          fetch('http://localhost:8000/api/courses').catch(() => null),
           fetch('http://localhost:8000/api/levels').catch(() => null)
         ]);
 
         const deptData = deptRes && deptRes.ok ? await deptRes.json() : [];
         const sessData = sessRes && sessRes.ok ? await sessRes.json() : [];
-        const courseData = courseRes && courseRes.ok ? await courseRes.json() : [];
         const levelData = levelRes && levelRes.ok ? await levelRes.json() : [];
 
         setDepartments(Array.isArray(deptData) ? deptData : []);
         setSessions(Array.isArray(sessData) ? sessData : []);
-        setCourses(Array.isArray(courseData) ? courseData : []);
         setLevels(Array.isArray(levelData) ? levelData : []);
       } catch (err) {
         console.error("Loading error:", err);
@@ -43,12 +41,63 @@ export default function BroadSheetManager() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const loadFilteredCourses = async () => {
+      if (!config.deptId || !config.sessionId || !config.level) return;
+
+      try {
+        const params = new URLSearchParams({
+          department_id: config.deptId,
+          session_id: config.sessionId,
+          level: config.level
+        });
+        const res = await fetch(`http://localhost:8000/api/results/courses-by-criteria?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCourses(data);
+        }
+      } catch (err) {
+        console.error("Error loading filtered courses:", err);
+      }
+    };
+    loadFilteredCourses();
+  }, [config.deptId, config.sessionId, config.level]);
+
   const toggleCourse = (courseId) => {
     setSelectedCourses(prev =>
       prev.includes(courseId)
         ? prev.filter(id => id !== courseId)
         : [...prev, courseId]
     );
+  };
+
+  const handlePreview = async () => {
+    if (!config.deptId || !config.sessionId || !config.level) {
+      alert("Please select a Department, Session, and Level.");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const params = new URLSearchParams({
+        department_id: config.deptId,
+        session_id: config.sessionId,
+        level: config.level
+      });
+      const response = await fetch(`http://localhost:8000/api/reports/preview-broadsheet?${params.toString()}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewData(data);
+      } else {
+        alert("Error generating preview.");
+      }
+    } catch (error) {
+      console.error("Preview error:", error);
+      alert("Network error occurred.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDownload = async () => {
@@ -59,7 +108,7 @@ export default function BroadSheetManager() {
 
     setIsGenerating(true);
     try {
-      const response = await fetch('http://localhost:8000/api/reports/download-broadsheet', {
+      const response = await fetch('http://localhost:8000/api/reports/download-report-bundle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -67,6 +116,8 @@ export default function BroadSheetManager() {
           session_id: config.sessionId,
           level: config.level,
           course_ids: selectedCourses,
+          programme_name: "PDECE_CCOE:PDE 1",
+          level_code: "SETD/1",
         }),
       });
 
@@ -75,12 +126,12 @@ export default function BroadSheetManager() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `BroadSheet_${config.deptId}.xlsx`;
+        a.download = `ReportBundle_${config.deptId}.zip`;
         a.click();
         window.URL.revokeObjectURL(url);
       } else {
         const err = await response.json();
-        alert("Error: " + (err.detail || "Failed to generate BroadSheet"));
+        alert("Error: " + (err.detail || "Failed to generate Report Bundle"));
       }
     } catch (error) {
       alert("Network error occurred.");
@@ -144,7 +195,10 @@ export default function BroadSheetManager() {
         </div>
 
         <div className="mt-8 space-y-4">
-          <label className="block text-sm font-medium text-slate-700">Select Courses</label>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-slate-700">Select Courses</label>
+            <span className="text-xs text-slate-400 italic">Only courses for the selected Department, Session and Level will show here.</span>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-3 border rounded-md bg-slate-50">
             {(courses || []).map(c => (
               <label key={c.id} className="flex items-center gap-3 p-2 bg-white border rounded hover:border-blue-400 cursor-pointer transition">
@@ -157,22 +211,77 @@ export default function BroadSheetManager() {
                 <span className="text-sm text-slate-700 font-mono">{c.code} - {c.description}</span>
               </label>
             ))}
-            {(!courses || courses.length === 0) && <p className="text-slate-400 italic text-sm col-span-full text-center">No courses available</p>}
+            {(!courses || courses.length === 0) && <p className="text-slate-400 italic text-sm col-span-full text-center">No courses available for the selected criteria.</p>}
           </div>
           <p className="text-xs text-slate-400 italic">Select one or more courses to include in the BroadSheet.</p>
         </div>
 
-        <button
-          onClick={handleDownload}
-          disabled={isGenerating}
-          className={`w-full mt-8 py-3 rounded-lg font-bold transition shadow-lg ${
-            isGenerating
+        <div className="flex gap-4 mt-8">
+          <button
+            onClick={handlePreview}
+            disabled={isGenerating}
+            className={`flex-1 py-3 rounded-lg font-bold transition shadow-md ${
+              isGenerating
+              ? 'bg-slate-400 cursor-not-allowed'
+              : 'bg-indigo-500 text-white hover:bg-indigo-600'
+            }`}>
+            {isGenerating ? 'Processing...' : 'Preview BroadSheet'}
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={isGenerating}
+            className={`flex-1 py-3 rounded-lg font-bold transition shadow-lg ${
+              isGenerating
               ? 'bg-slate-400 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
-          }`}>
-          {isGenerating ? 'Generating Excel File...' : 'Generate & Download BroadSheet'}
-        </button>
+            }`}>
+            {isGenerating ? 'Generating Excel File...' : 'Generate & Download BroadSheet'}
+          </button>
+        </div>
       </div>
+
+      {previewData && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+          <h2 className="text-xl font-semibold mb-4 text-slate-800">BroadSheet Preview</h2>
+          <table className="w-full text-xs border-collapse border border-slate-300">
+            <thead>
+              <tr className="bg-slate-100">
+                <th className="border border-slate-300 p-1">Matric No</th>
+                <th className="border border-slate-300 p-1">Name</th>
+                {previewData.courses.map(c => (
+                  <th key={c.id} className="border border-slate-300 p-1 text-center">{c.code}</th>
+                ))}
+                <th className="border border-slate-300 p-1">GPA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {previewData.students && previewData.students.length > 0 ? (
+                previewData.students.map((s, idx) => (
+                  <tr key={idx}>
+                    <td className="border border-slate-300 p-1 text-xs">{s.matric_no}</td>
+                    <td className="border border-slate-300 p-1 text-xs">{s.name}</td>
+                    {previewData.courses.map(c => {
+                      const res = s.results.find(r => r.course_code === c.code);
+                      return (
+                        <td key={c.id} className="border border-slate-300 p-1 text-center text-xs">
+                          {res ? `${res.cw}/${res.ex}/${res.total}` : 'ABS'}
+                        </td>
+                      );
+                    })}
+                    <td className="border border-slate-300 p-1 text-center text-xs font-bold">{s.gpa}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={previewData.courses.length + 3} className="border border-slate-300 p-4 text-center text-slate-500 italic">
+                    No data available for the selected criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,193 @@
+import React, { useState, useEffect } from 'react';
+
+export default function CourseRegistration() {
+  const [departments, setDepartments] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedSession, setSelectedSession] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
+  const [students, setStudents] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
+  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchMetadata();
+  }, []);
+
+  const fetchMetadata = async () => {
+    try {
+      const [deptRes, sessRes, lvlRes, courseRes] = await Promise.all([
+        fetch('http://localhost:8000/api/departments').then(r => r.json()),
+        fetch('http://localhost:8000/api/sessions').then(r => r.json()),
+        fetch('http://localhost:8000/api/levels').then(r => r.json()),
+        fetch('http://localhost:8000/api/courses').then(r => r.json()),
+      ]);
+      setDepartments(deptRes);
+      setSessions(sessRes);
+      setLevels(lvlRes);
+      setAllCourses(courseRes);
+    } catch (error) {
+      console.error("Error fetching metadata:", error);
+    }
+  };
+
+  const fetchStudents = async () => {
+    if (!selectedDept || !selectedSession || !selectedLevel) return;
+    setLoading(true);
+    try {
+      // We use a custom endpoint to get students by criteria
+      const response = await fetch(`http://localhost:8000/api/results/students-by-course?department_id=${selectedDept}&session_id=${selectedSession}&level=${selectedLevel}`);
+      const data = await response.json();
+      // The endpoint currently returns results for a course; we need a general student list
+      // For now, we'll simulate getting the student list from a hypothetical /api/students/by-criteria
+      // until we implement that specific endpoint.
+      setStudents(data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    }
+    setLoading(false);
+  };
+
+  const toggleCourse = (course) => {
+    setSelectedCourses(prev =>
+      prev.find(c => c.id === course.id)
+        ? prev.filter(c => c.id !== course.id)
+        : [...prev, course]
+    );
+  };
+
+  const handleBulkRegister = async () => {
+    if (students.length === 0 || selectedCourses.length === 0) {
+      alert("Please select both students and courses.");
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/academic/bulk-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_ids: students.map(s => s.id),
+          course_ids: selectedCourses.map(c => c.id),
+          session_id: selectedSession,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Bulk registration successful!");
+      } else {
+        const err = await response.json();
+        alert("Error: " + (err.detail || "Registration failed"));
+      }
+    } catch (error) {
+      alert("Network error occurred.");
+    }
+  };
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen space-y-6">
+      <h1 className="text-3xl font-bold text-slate-800">Course Registration</h1>
+
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+          <select
+            className="w-full p-2 border rounded-md"
+            value={selectedDept}
+            onChange={(e) => setSelectedDept(e.target.value)}>
+            <option value="">Select Department</option>
+            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Session</label>
+          <select
+            className="w-full p-2 border rounded-md"
+            value={selectedSession}
+            onChange={(e) => setSelectedSession(e.target.value)}>
+            <option value="">Select Session</option>
+            {sessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
+          <select
+            className="w-full p-2 border rounded-md"
+            value={selectedLevel}
+            onChange={(e) => setSelectedLevel(e.target.value)}>
+            <option value="">Select Level</option>
+            {levels.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+        <button
+          onClick={fetchStudents}
+          className="md:col-span-3 bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition font-medium">
+          Retrieve Students
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h2 className="text-xl font-semibold mb-4 text-slate-800">Students</h2>
+          {loading ? <p>Loading...</p> : (
+            <div className="max-h-96 overflow-y-auto border rounded-md">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="p-2 border-b w-10"><input type="checkbox" onChange={(e) => {
+                      const checked = e.target.checked;
+                      setStudents(prev => prev.map(s => ({...s, selected: checked})));
+                    }} /></th>
+                    <th className="p-2 border-b">Matric No</th>
+                    <th className="p-2 border-b">Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map(s => (
+                    <tr key={s.id} className="hover:bg-slate-50">
+                      <td className="p-2 border-b">
+                        <input type="checkbox" checked={s.selected || false} onChange={(e) => {
+                          setStudents(prev => prev.map(st => st.id === s.id ? {...st, selected: e.target.checked} : st));
+                        }} />
+                      </td>
+                      <td className="p-2 border-b text-sm font-mono">{s.matric_no}</td>
+                      <td className="p-2 border-b text-sm">{s.name}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h2 className="text-xl font-semibold mb-4 text-slate-800">Courses</h2>
+          <div className="max-h-96 overflow-y-auto border rounded-md">
+            {allCourses.map(c => (
+              <div
+                key={c.id}
+                onClick={() => toggleCourse(c)}
+                className={`p-3 cursor-pointer border-b flex justify-between items-center transition ${selectedCourses.find(sc => sc.id === c.id) ? 'bg-indigo-50 border-indigo-200' : 'hover:bg-slate-50'}`}>
+                <div>
+                  <span className="font-bold text-indigo-700">{c.code}</span>
+                  <span className="ml-2 text-sm text-slate-600">{c.description}</span>
+                </div>
+                <div className="text-xs font-medium bg-slate-200 px-2 py-1 rounded">{c.units} Units</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <button
+          onClick={handleBulkRegister}
+          className="bg-green-600 text-white px-8 py-3 rounded-xl hover:bg-green-700 transition shadow-lg font-bold text-lg">
+          Execute Registration
+        </button>
+      </div>
+    </div>
+  );
+}

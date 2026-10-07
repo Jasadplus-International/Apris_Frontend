@@ -1,0 +1,122 @@
+import React, { useState, useEffect } from 'react';
+
+export default function CourseManager() {
+  const [courses, setCourses] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [courseData, setCourseData] = useState({ code: '', description: '', units: '' });
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/courses');
+      const data = await response.json();
+      setCourses(data);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:8000/api/courses/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(courseData),
+      });
+
+      if (response.ok) {
+        alert("Course saved successfully!");
+        setIsModalOpen(false);
+        setCourseData({ code: '', description: '', units: '' });
+        fetchCourses();
+      } else {
+        alert("Error saving course.");
+      }
+    } catch (error) {
+      alert("Network error occurred.");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-slate-800">Course Management</h1>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-md">
+          + Add New Course
+        </button>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-6 text-slate-800">Course Details</h2>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Course Code</label>
+                <input
+                  type="text" required className="w-full p-2 border rounded-md"
+                  value={courseData.code}
+                  onChange={(e) => setCourseData({...courseData, code: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Description</label>
+                <input
+                  type="text" required className="w-full p-2 border rounded-md"
+                  value={courseData.description}
+                  onChange={(e) => setCourseData({...courseData, description: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700">Credit Units</label>
+                <input
+                  type="number" required className="w-full p-2 border rounded-md"
+                  value={courseData.units}
+                  onChange={(e) => setCourseData({...courseData, units: e.target.value})}
+                />
+              </div>
+              <div className="flex justify-end space-x-3 mt-8">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-md transition">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Save Course</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr className="text-slate-700">
+              <th className="p-4 font-semibold">Course Code</th>
+              <th className="p-4 font-semibold">Description</th>
+              <th className="p-4 font-semibold">Units</th>
+              <th className="p-4 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {courses.length > 0 ? courses.map((c, idx) => (
+              <tr key={idx} className="hover:bg-slate-50 transition">
+                <td className="p-4 text-sm font-medium text-slate-900">{c.code}</td>
+                <td className="p-4 text-sm text-slate-600">{c.description}</td>
+                <td className="p-4 text-sm text-slate-600">{c.units}</td>
+                <td className="p-4 text-sm">
+                  <button className="text-blue-600 hover:underline mr-3">Edit</button>
+                  <button className="text-red-600 hover:underline">Delete</button>
+                </td>
+              </tr>
+            )) : (
+              <tr><td colSpan="4" className="p-8 text-center text-slate-400 italic">No courses found.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

@@ -64,7 +64,12 @@ const ResultEntry = () => {
   };
 
   const handleScoreChange = async (regId, field, value) => {
-    const numValue = parseFloat(value) || 0;
+    // Strict validation: 0-100
+    let numValue = parseFloat(value);
+    if (isNaN(numValue)) numValue = 0;
+    if (numValue < 0) numValue = 0;
+    if (numValue > 100) numValue = 100;
+
     const updatedStudents = students.map(s => {
       if (s.registration_id === regId) {
         return { ...s, [field]: numValue };
