@@ -1,157 +1,169 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ScrollText, FileSearch, Printer, ChevronRight } from 'lucide-react';
+import { PageHeader, Button, Spinner, EmptyState, Reveal } from '../components/ui';
+import { API } from '../lib/api';
+import { useInstitution } from '../lib/useInstitution';
+
+
 
 export default function StudentTranscript({ setSlipData, setActivePage }) {
+  const inst = useInstitution();
   const [studentId, setStudentId] = useState('');
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const fetchTranscript = async () => {
-    if (!studentId) return;
-    setIsLoading(true);
-    setError(null);
+    if (!studentId.trim()) return;
+    setIsLoading(true); setError(null);
     try {
       // encodeURIComponent handles the slashes in matric numbers (e.g., 13/PDBED/30287)
-      const encodedId = encodeURIComponent(studentId);
-      const response = await fetch(`http://localhost:8000/api/academic/transcript/${encodedId}`);
+      const response = await fetch(`${API}/api/academic/transcript/${encodeURIComponent(studentId)}`);
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Server Error (${response.status}): ${errorText}`);
+        throw new Error(`Server error (${response.status}): ${errorText}`);
       }
-      const result = await response.json();
-      setData(result);
+      setData(await response.json());
     } catch (err) {
-      setError(`Network/System Error: ${err.message}`);
+      setError(`Network/system error: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full w-full text-slate-500">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Fetching academic records...</p>
-        </div>
-      </div>
-    );
-  }
+  const standing = (cgpa) =>
+    cgpa >= 4.5 ? 'First Class' : cgpa >= 3.5 ? 'Second Class Upper'
+    : cgpa >= 2.4 ? 'Second Class Lower' : 'Pass';
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Search Header */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex gap-4 items-end">
-        <div className="flex-1 space-y-2">
-          <label className="block text-sm font-medium text-slate-700">Student ID / UUID</label>
-          <input
-            type="text"
-            className="w-full p-2 border rounded-md bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-            placeholder="Enter Student UUID..."
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-          />
+    <div>
+      <PageHeader
+        eyebrow="Records"
+        title="Transcripts"
+        subtitle="Official per-student academic transcript with sessional GPA and cumulative standing."
+      />
+
+      <Reveal>
+        <div className="bg-white border border-line rounded-xl p-5 flex flex-wrap gap-4 items-end mb-6">
+          <div className="flex-1 min-w-[260px]">
+            <label className="block text-[12px] font-semibold text-mute mb-1.5">Student matric number</label>
+            <input
+              type="text"
+              className="field font-mono"
+              placeholder="Enter matric no and press Enter…"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchTranscript()}
+            />
+          </div>
+          <Button icon={FileSearch} onClick={fetchTranscript} disabled={isLoading}>
+            {isLoading ? 'Searching…' : 'Get transcript'}
+          </Button>
         </div>
-        <button
-          onClick={fetchTranscript}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 transition shadow-md"
-        >
-          Generate Transcript
-        </button>
-      </div>
+      </Reveal>
 
       {error && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-200">
-          Error: {error}
+        <div className="mb-5 rounded-xl border border-fail/25 bg-fail/5 text-fail px-5 py-4 text-sm">
+          {error}
         </div>
       )}
 
+      {isLoading && <Spinner label="Fetching academic records…" />}
+
       {data && (
-        <div className="bg-white p-10 rounded-sm shadow-lg border border-slate-300 text-slate-900 print:shadow-none print:border-none">
-          {/* Institutional Header */}
-          <div className="text-center border-b-2 border-slate-800 pb-6 mb-8">
-            <h1 className="text-3xl font-bold uppercase tracking-wide">Official Academic Transcript</h1>
-            <p className="text-lg text-slate-600 mt-1">University Management System (ARPIS)</p>
-          </div>
-
-          {/* Student Profile Grid */}
-          <div className="grid grid-cols-2 gap-8 mb-10 text-sm">
-            <div className="space-y-2">
-              <p><span className="font-bold uppercase">Student Name:</span> {data.profile.name}</p>
-              <p><span className="font-bold uppercase">Matriculation No:</span> {data.profile.matric_no}</p>
+        <Reveal>
+          <div className="doc-sheet rounded-xl p-10 print:shadow-none print:border-none">
+            {/* Institutional header */}
+            <div className="text-center border-b-2 border-ink pb-6 mb-8">
+              <div className="font-mono text-[10.5px] tracking-[0.22em] uppercase text-mute mb-2">{inst.caps_name || 'ARPIS'} · ARPIS</div>
+              <h1 className="font-display text-3xl font-semibold text-ink tracking-tight">Official Academic Transcript</h1>
             </div>
-            <div className="space-y-2 text-right">
-              <p><span className="font-bold uppercase">Department:</span> {data.profile.department}</p>
-              <p><span className="font-bold uppercase">Date of Issue:</span> {new Date().toLocaleDateString()}</p>
-            </div>
-          </div>
 
-          {/* Academic Sessions */}
-          <div className="space-y-12">
-            {data.sessions.map((sess, idx) => (
-              <div key={idx} className="space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-400 pb-2">
-                  <h2 className="text-xl font-bold text-slate-800 uppercase">Session: {sess.session}</h2>
-                  <button
-                    onClick={() => {
-                      setSlipData({ studentId, sessionId: sess.session });
-                      setActivePage('session-slip');
-                    }}
-                    className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded border border-slate-300 transition print:hidden"
-                  >
-                    View Sessional Slip
-                  </button>
-                </div>
-
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-y border-slate-300">
-                      <th className="p-2 font-bold uppercase">Course Code</th>
-                      <th className="p-2 font-bold uppercase">Course Title</th>
-                      <th className="p-2 font-bold uppercase text-center">Unit</th>
-                      <th className="p-2 font-bold uppercase text-center">Score</th>
-                      <th className="p-2 font-bold uppercase text-center">Grade</th>
-                      <th className="p-2 font-bold uppercase text-center">Point</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sess.results.map((res, rIdx) => (
-                      <tr key={rIdx} className="border-b border-slate-200 hover:bg-slate-50">
-                        <td className="p-2 font-mono">{res.course_code}</td>
-                        <td className="p-2">{res.description}</td>
-                        <td className="p-2 text-center">{res.units}</td>
-                        <td className="p-2 text-center">{res.score}</td>
-                        <td className="p-2 text-center font-bold">{res.grade}</td>
-                        <td className="p-2 text-center">{res.grade_point}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="font-bold bg-slate-50">
-                      <td colSpan="2" className="p-2 text-right uppercase">Session Total Units:</td>
-                      <td className="p-2 text-center">{sess.total_units}</td>
-                      <td colSpan="2" className="p-2 text-right uppercase">Session GPA:</td>
-                      <td className="p-2 text-center text-blue-700">{sess.gpa}</td>
-                    </tr>
-                  </tfoot>
-                </table>
+            {/* Student profile grid */}
+            <div className="grid grid-cols-2 gap-8 mb-10 text-sm">
+              <div className="space-y-2">
+                <p><span className="font-semibold text-mute text-[12px]">Student name</span> — {data.profile.name}</p>
+                <p><span className="font-semibold text-mute text-[12px]">Matriculation no</span> — <span className="font-mono">{data.profile.matric_no}</span></p>
               </div>
-            ))}
-          </div>
+              <div className="space-y-2 text-right">
+                <p><span className="font-semibold text-mute text-[12px]">Department</span> — {data.profile.department}</p>
+                <p><span className="font-semibold text-mute text-[12px]">Date of issue</span> — {new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
 
-          {/* Final Summary */}
-          <div className="mt-12 p-6 bg-slate-50 border-t-4 border-slate-800 flex justify-between items-center">
-            <div>
-              <p className="text-sm text-slate-500 uppercase font-bold">Cumulative Grade Point Average</p>
-              <p className="text-4xl font-black text-slate-900">{data.cgpa}</p>
+            {/* Academic sessions */}
+            <div className="space-y-12">
+              {data.sessions.map((sess, idx) => (
+                <motion.div key={idx} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }} className="space-y-4">
+                  <div className="flex justify-between items-center border-b border-line pb-2">
+                    <h2 className="font-display text-lg font-semibold text-ink">{sess.session}</h2>
+                    <button
+                      onClick={() => { setSlipData({ studentId, sessionId: sess.session }); setActivePage('session-slip'); }}
+                    >
+                      <span className="group inline-flex items-center gap-1 text-[12px] font-semibold text-seal hover:gap-2 transition-all print:hidden">
+                        Sessional slip <ChevronRight size={13} />
+                      </span>
+                    </button>
+                  </div>
+                  <table className="ledger">
+                    <thead>
+                      <tr>
+                        <th>Course code</th>
+                        <th>Course title</th>
+                        <th className="text-center">Unit</th>
+                        <th className="text-center">Score</th>
+                        <th className="text-center">Grade</th>
+                        <th className="text-center">Point</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sess.results.map((res, rIdx) => (
+                        <tr key={rIdx}>
+                          <td className="font-mono text-[12.5px]">{res.course_code}</td>
+                          <td>{res.description}</td>
+                          <td className="text-center tabular-nums">{res.units}</td>
+                          <td className="text-center tabular-nums">{res.score}</td>
+                          <td className="text-center font-semibold">{res.grade}</td>
+                          <td className="text-center tabular-nums">{res.grade_point}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="font-semibold bg-[#fafbfd]">
+                        <td colSpan="2" className="p-2.5 text-right text-[12px] text-mute">Session total units</td>
+                        <td className="p-2.5 text-center tabular-nums">{sess.total_units}</td>
+                        <td colSpan="2" className="p-2.5 text-right text-[12px] text-mute">Session GPA</td>
+                        <td className="p-2.5 text-center tabular-nums font-semibold">{sess.gpa}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </motion.div>
+              ))}
             </div>
-            <div className="text-right">
-              <p className="text-sm text-slate-500 uppercase font-bold">Academic Standing</p>
-              <p className="text-xl font-bold text-blue-800">
-                {data.cgpa >= 4.5 ? 'First Class' : data.cgpa >= 3.5 ? 'Second Class Upper' : data.cgpa >= 2.4 ? 'Second Class Lower' : 'Pass'}
-              </p>
+
+            {/* Final summary */}
+            <div className="mt-12 rounded-xl bg-ink text-white p-7 flex justify-between items-center shadow-[0_18px_40px_-18px_rgba(16,30,56,0.5)]">
+              <div>
+                <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-white/45">Cumulative GPA</p>
+                <p className="font-display text-5xl font-semibold tabular-nums mt-1"><span className="">{data.cgpa}</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-mono tracking-[0.16em] uppercase text-white/45">Academic standing</p>
+                <p className="font-display text-2xl font-semibold text-brass mt-1">{standing(data.cgpa)}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button variant="ghost" icon={Printer} onClick={() => window.print()} className="print:hidden">Print</Button>
             </div>
           </div>
+        </Reveal>
+      )}
+
+      {!data && !isLoading && (
+        <div className="doc-sheet rounded-xl">
+          <EmptyState icon={ScrollText} title="No transcript loaded" hint="Enter a student matric number above to pull the official record." />
         </div>
       )}
     </div>

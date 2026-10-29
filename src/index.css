@@ -1,1 +1,121 @@
 @import "tailwindcss";
+
+/* ===== ARPIS v2.0 design tokens ===== */
+@theme {
+  --color-ink: #101e38;        /* deep ledger navy */
+  --color-ink-2: #1b2c4d;      /* raised navy */
+  --color-ink-3: #27395f;      /* hover navy */
+  --color-paper: #f3f5f9;      /* office paper background */
+  --color-surface: #ffffff;
+  --color-seal: #8a2837;       /* oxblood official seal */
+  --color-seal-2: #a73b47;
+  --color-brass: #b98f2e;
+  --color-line: #e2e6ee;
+  --color-mute: #5d6b82;
+  --color-pass: #1f7a4d;
+  --color-fail: #b3261e;
+
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "Inter", ui-monospace, system-ui, sans-serif;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--color-paper);
+  font-family: var(--font-sans);
+  color: #1c2434;
+}
+
+/* visible keyboard focus */
+:focus-visible {
+  outline: 2px solid var(--color-seal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* slim scrollbars */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: #c9d1de; border-radius: 8px; border: 2px solid var(--color-paper); }
+*::-webkit-scrollbar-thumb:hover { background: #aeb9c9; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Ledger table — the recurring "official record sheet" look */
+.ledger {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 13.5px;
+}
+.ledger thead th {
+  position: sticky;
+  top: 0;
+  background: #fafbfd;
+  border-bottom: 1px solid var(--color-line);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--color-mute);
+  text-align: left;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+.ledger tbody td {
+  border-bottom: 1px solid #eef1f6;
+  padding: 10px 14px;
+  vertical-align: middle;
+}
+.ledger tbody tr { transition: background 0.15s ease; }
+.ledger tbody tr:hover { background: #f8fafd; }
+
+/* official document sheet (transcript / slip) */
+.doc-sheet {
+  background: var(--color-surface);
+  border: 1px solid #dce2ec;
+  box-shadow:
+    0 1px 2px rgba(16, 30, 56, 0.05),
+    0 12px 32px -12px rgba(16, 30, 56, 0.14);
+}
+
+/* stamp-like badge */
+.stamp {
+  border: 1.5px solid currentColor;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* inputs */
+.field {
+  width: 100%;
+  background: #fbfcfe;
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: #1c2434;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field:hover { border-color: #b9c3d3; }
+.field:focus {
+  outline: none;
+  border-color: var(--color-seal);
+  box-shadow: 0 0 0 3px rgba(138, 40, 55, 0.12);
+}
+.field::placeholder { color: #9aa5b5; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

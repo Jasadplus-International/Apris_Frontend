@@ -1,131 +1,131 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Building2, Pencil } from 'lucide-react';
+import { PageHeader, Modal, Button, EmptyState, Reveal } from '../components/ui';
+import { API } from '../lib/api';
+
+
+const emptyDept = { name: '', practical_grouping: '', teaching_1: '', teaching_2: '' };
 
 export default function DepartmentManager() {
   const [departments, setDepartments] = useState([]);
+  const [query, setQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [deptData, setDeptData] = useState({ name: '', practical_grouping: '', teaching_1: '', teaching_2: '' });
+  const [deptData, setDeptData] = useState(emptyDept);
 
-  useEffect(() => {
-    fetchDepartments();
-  }, []);
+  useEffect(() => { fetchDepartments(); }, []);
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/departments');
+      const response = await fetch(', API}/api/departments');
       const data = await response.json();
-      setDepartments(data);
+      setDepartments(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error fetching departments:", error);
+      console.error('Error fetching departments:', error);
+      setDepartments([]);
     }
   };
+
+  const filtered = departments.filter(d =>
+    !query || d.name.toLowerCase().includes(query.toLowerCase()));
 
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      // Since there's no specific PUT endpoint yet, we'll use a generic one or implement it in the backend
-      const response = await fetch('http://localhost:8000/api/departments/save', {
+      const response = await fetch(', API}/api/departments/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(deptData),
       });
-
       if (response.ok) {
-        alert("Department saved successfully!");
         setIsModalOpen(false);
-        setDeptData({ name: '', practical_grouping: '', teaching_1: '', teaching_2: '' });
+        setDeptData(emptyDept);
         fetchDepartments();
       } else {
-        alert("Error saving department.");
+        alert('Error saving department.');
       }
     } catch (error) {
-      alert("Network error occurred.");
+      alert('Network error occurred.');
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-800">Department Management</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow-md">
-          + Add New Department
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        eyebrow="Configuration"
+        title="Departments"
+        subtitle="All department codes on record — the full catalogue the broadsheet reports draw from."
+        actions={<Button icon={Building2} onClick={() => setIsModalOpen(true)}>Add department</Button>}
+      />
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-6 text-slate-800">Department Details</h2>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Department Name</label>
-                <input
-                  type="text" required className="w-full p-2 border rounded-md"
-                  value={deptData.name}
-                  onChange={(e) => setDeptData({...deptData, name: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Practical Grouping</label>
-                <input
-                  type="text" className="w-full p-2 border rounded-md"
-                  value={deptData.practical_grouping}
-                  onChange={(e) => setDeptData({...deptData, practical_grouping: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Teaching 1</label>
-                  <input
-                    type="text" className="w-full p-2 border rounded-md"
-                    value={deptData.teaching_1}
-                    onChange={(e) => setDeptData({...deptData, teaching_1: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Teaching 2</label>
-                  <input
-                    type="text" className="w-full p-2 border rounded-md"
-                    value={deptData.teaching_2}
-                    onChange={(e) => setDeptData({...deptData, teaching_2: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 mt-8">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-md transition">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Save Department</button>
-              </div>
-            </form>
-          </div>
+      <div className="mb-5 flex items-center gap-4">
+        <div className="relative flex-1 max-w-md">
+          <input className="field" placeholder="Search departments…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-      )}
-
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr className="text-slate-700">
-              <th className="p-4 font-semibold">Department Name</th>
-              <th className="p-4 font-semibold">Grouping</th>
-              <th className="p-4 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {departments.length > 0 ? departments.map((d, idx) => (
-              <tr key={idx} className="hover:bg-slate-50 transition">
-                <td className="p-4 text-sm font-medium text-slate-900">{d.name}</td>
-                <td className="p-4 text-sm text-slate-600">{d.practical_grouping || 'N/A'}</td>
-                <td className="p-4 text-sm">
-                  <button className="text-blue-600 hover:underline mr-3">Edit</button>
-                  <button className="text-red-600 hover:underline">Delete</button>
-                </td>
-              </tr>
-            )) : (
-              <tr><td colSpan="3" className="p-8 text-center text-slate-400 italic">No departments found.</td></tr>
-            )}
-          </tbody>
-        </table>
+        <div className="font-mono text-[11px] text-mute tracking-widest uppercase">{departments.length} codes</div>
       </div>
+
+      <Reveal>
+        <div className="doc-sheet rounded-xl overflow-hidden">
+          <table className="ledger">
+            <thead>
+              <tr>
+                <th className="w-14">No.</th>
+                <th>Department</th>
+                <th>Practical grouping</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length > 0 ? filtered.map((d, idx) => (
+                <motion.tr key={idx} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(idx * 0.015, 0.4) }}>
+                  <td className="font-mono text-[11px] text-mute">{String(idx + 1).padStart(2, '0')}</td>
+                  <td className="font-mono text-[13px] font-semibold text-ink">{d.name}</td>
+                  <td className="text-mute">{d.practical_grouping || '—'}</td>
+                  <td className="text-right">
+                    <button className="p-2 rounded-lg text-mute hover:text-seal hover:bg-seal/5 transition"><Pencil size={15} /></button>
+                  </td>
+                </motion.tr>
+              )) : (
+                <tr><td colSpan="4">
+                  <EmptyState icon={Building2} title="No departments found" hint="Clear the search, or add a new department code." />
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Reveal>
+
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title="New department">
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-[12px] font-semibold text-mute mb-1.5">Department code</label>
+            <input type="text" required className="field font-mono" placeholder="e.g. PES" value={deptData.name}
+              onChange={(e) => setDeptData({ ...deptData, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-[12px] font-semibold text-mute mb-1.5">Practical grouping</label>
+            <input type="text" className="field" value={deptData.practical_grouping}
+              onChange={(e) => setDeptData({ ...deptData, practical_grouping: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[12px] font-semibold text-mute mb-1.5">Teaching 1</label>
+              <input type="text" className="field" value={deptData.teaching_1}
+                onChange={(e) => setDeptData({ ...deptData, teaching_1: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-[12px] font-semibold text-mute mb-1.5">Teaching 2</label>
+              <input type="text" className="field" value={deptData.teaching_2}
+                onChange={(e) => setDeptData({ ...deptData, teaching_2: e.target.value })} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-6">
+            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button type="submit">Save department</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
