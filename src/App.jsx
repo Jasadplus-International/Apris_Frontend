@@ -10,6 +10,7 @@ import StudentSessionSlip from './pages/StudentSessionSlip';
 import DepartmentManager from './pages/DepartmentManager';
 import CourseManager from './pages/CourseManager';
 import CourseRegistration from './pages/CourseRegistration';
+import InstitutionSetup from './pages/InstitutionSetup';
 
 /* Crash guard: a broken page must never blank the whole app */
 class ErrorBoundary extends Component {
@@ -74,6 +75,7 @@ function App() {
               {activePage === 'departments' && <DepartmentManager />}
               {activePage === 'courses' && <CourseManager />}
               {activePage === 'registration' && <CourseRegistration />}
+              {activePage === 'institution' && <InstitutionSetup />}
               {activePage === 'transcript' && (
                 <StudentTranscript
                   setSlipData={setSlipData}

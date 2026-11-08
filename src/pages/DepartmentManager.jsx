@@ -17,7 +17,7 @@ export default function DepartmentManager() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(', API}/api/departments');
+      const response = await fetch(`${API}/api/departments`);
       const data = await response.json();
       setDepartments(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -32,7 +32,7 @@ export default function DepartmentManager() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(', API}/api/departments/save', {
+      const response = await fetch(`${API}/api/departments/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(deptData),

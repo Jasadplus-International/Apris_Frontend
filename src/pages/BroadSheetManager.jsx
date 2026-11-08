@@ -140,6 +140,7 @@ export default function BroadSheetManager() {
                   <label className="block text-[12px] font-semibold text-mute mb-1.5">Department</label>
                   <select className="field" value={config.deptId} onChange={sel('deptId')}>
                     <option value="">Select department…</option>
+                    <option value="ALL">All departments (whole university)</option>
                     {(departments || []).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>

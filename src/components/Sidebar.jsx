@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardEdit, FileSpreadsheet,
-  ScrollText, Building2, UserPlus, BookOpen,
+  ScrollText, Building2, UserPlus, BookOpen, Database,
 } from 'lucide-react';
-import { useInstitution } from '../lib/useInstitution';
+import { useInstitution, useInstitutionVersion } from '../lib/useInstitution';
 import { API } from '../lib/api';
 
 const menuItems = [
@@ -16,10 +16,12 @@ const menuItems = [
   { id: 'transcript', label: 'Transcripts', hint: 'Per student', icon: ScrollText },
   { id: 'departments', label: 'Departments', hint: 'Configure', icon: Building2 },
   { id: 'courses', label: 'Courses', hint: 'Catalogue', icon: BookOpen },
+  { id: 'institution', label: 'Institution', hint: 'Legacy DB import', icon: Database },
 ];
 
 export default function Sidebar({ setActivePage, activePage, setSlipData }) {
   const inst = useInstitution();
+  useInstitutionVersion(); // re-render on institution change
 
   return (
     <aside className="w-[248px] shrink-0 bg-ink text-white flex flex-col h-screen">

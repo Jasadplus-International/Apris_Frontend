@@ -12,27 +12,38 @@ const emptyStudent = {
 };
 
 export default function StudentRegistry() {
+  const PAGE = 300;
   const [students, setStudents] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newStudent, setNewStudent] = useState(emptyStudent);
 
-  const fetchStudents = async () => {
+  // Paginated + server-side search (a 16k-row single render freezes the browser)
+  const fetchStudents = async (q = '', offset = 0, append = false) => {
+    setSearching(true);
     try {
-      const response = await fetch(', API}/api/students');
-      const data = await response.json();
-      setStudents(Array.isArray(data) ? data : []);
+      const params = new URLSearchParams({ q, limit: String(PAGE), offset: String(offset) });
+      const data = await (await fetch(`${API}/api/students?${params.toString()}`)).json();
+      const list = Array.isArray(data?.students) ? data.students : [];
+      setTotal(typeof data?.total === 'number' ? data.total : list.length);
+      setStudents(append ? [...students, ...list] : list);
+      setHasMore(offset + list.length < (data?.total ?? 0));
     } catch (error) {
       console.error("Error fetching students:", error);
-      setStudents([]);
+      if (!append) setStudents([]);
+    } finally {
+      setSearching(false);
     }
   };
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(', API}/api/departments');
+      const response = await fetch(`${API}/api/departments`);
       const data = await response.json();
       setDepartments(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -43,17 +54,20 @@ export default function StudentRegistry() {
 
   React.useEffect(() => { fetchStudents(); fetchDepartments(); }, []);
 
-  const filtered = students.filter(s => {
-    if (!query) return true;
-    const q = query.toLowerCase();
-    return `${s.matric_no} ${s.surname} ${s.first_name} ${s.level || ''}}`.toLowerCase().includes(q);
-  });
+  // debounce server-side search
+  React.useEffect(() => {
+    const t = setTimeout(() => fetchStudents(query, 0, false), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  const filtered = students; // search happens on the server now
 
   const handleAddStudent = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const response = await fetch(', API}/api/students/add', {
+      const response = await fetch(`${API}/api/students/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStudent),
@@ -61,7 +75,7 @@ export default function StudentRegistry() {
       if (response.ok) {
         setIsModalOpen(false);
         setNewStudent(emptyStudent);
-        fetchStudents();
+        fetchStudents(query, 0, false);
       } else {
         const err = await response.json();
         alert("Error: " + (err.detail || "Unknown error"));
@@ -99,7 +113,7 @@ export default function StudentRegistry() {
           />
         </div>
         <div className="font-mono text-[11px] text-mute tracking-widest uppercase">
-          {students.length} records
+          {total.toLocaleString()} records
         </div>
       </div>
 
@@ -125,7 +139,9 @@ export default function StudentRegistry() {
                     <button className="p-2 rounded-lg text-mute hover:text-fail hover:bg-fail/5 transition" title="Delete"><Trash2 size={15} /></button>
                   </td>
                 </tr>
-              )) : (
+              )) : searching ? (
+                <tr><td colSpan="4" className="text-center text-mute text-sm py-10">Searching…</td></tr>
+              ) : (
                 <tr><td colSpan="4">
                   <EmptyState icon={Users} title="No students found"
                     hint="Add the first enrolment record, or clear the search."
@@ -134,6 +150,13 @@ export default function StudentRegistry() {
               )}
             </tbody>
           </table>
+          {hasMore && (
+            <div className="border-t border-line p-4 text-center">
+              <Button variant="ghost" onClick={() => fetchStudents(query, students.length, true)} disabled={searching}>
+                {searching ? 'Loading…' : `Load more (${students.length.toLocaleString()} of ${total.toLocaleString()} shown)`}
+              </Button>
+            </div>
+          )}
         </div>
       </Reveal>
 
