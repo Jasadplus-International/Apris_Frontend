@@ -24,3 +24,24 @@ const probe = async () => {
 };
 
 APIReady = probe();
+
+// Authenticated fetch: attaches the session token from local storage.
+// All app data calls go through this — the backend rejects bare requests.
+// A 401 response mid-session clears the dead session and signals the app
+// to return to the sign-in screen.
+export const authFetch = (url, opts = {}) => {
+  let token = null;
+  try { token = localStorage.getItem('arpis_token'); } catch {}
+  const headers = new Headers(opts.headers || {});
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return fetch(url, { ...opts, headers }).then((r) => {
+    if (r.status === 401 && token) {
+      try {
+        localStorage.removeItem('arpis_token');
+        localStorage.removeItem('arpis_role');
+      } catch {}
+      window.dispatchEvent(new CustomEvent('arpis-session-expired'));
+    }
+    return r;
+  });
+};

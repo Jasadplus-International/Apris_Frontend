@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Pencil, Trash2, Search } from 'lucide-react';
 import { PageHeader, Modal, Button, EmptyState, Reveal } from '../components/ui';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 
 const emptyCourse = { id: null, code: '', description: '', units: '' };
 
@@ -14,7 +14,7 @@ export default function CourseManager({ setActivePage }) {
 
   const fetchCourses = async () => {
     try {
-      const data = await (await fetch(`${API}/api/courses`)).json();
+      const data = await (await authFetch(`${API}/api/courses`)).json();
       setCourses(Array.isArray(data) ? data : []);
     } catch (e) { console.error('Error fetching courses:', e); setCourses([]); }
   };
@@ -24,7 +24,7 @@ export default function CourseManager({ setActivePage }) {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API}/api/courses/save`, {
+      const response = await authFetch(`${API}/api/courses/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: form.id, code: form.code, description: form.description, units: form.units }),
@@ -43,7 +43,7 @@ export default function CourseManager({ setActivePage }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this course? Registrations pointing at it will also be removed.')) return;
     try {
-      await fetch(`${API}/api/courses/${id}`, { method: 'DELETE' });
+      await authFetch(`${API}/api/courses/${id}`, { method: 'DELETE' });
       fetchCourses();
     } catch { alert('Network error occurred.'); }
   };

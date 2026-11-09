@@ -4,7 +4,7 @@ import {
   FileSpreadsheet, BookOpenText, Layers, FileText, Loader2, Download, Eye, ListChecks,
 } from 'lucide-react';
 import { PageHeader, Button, Spinner, EmptyState, Reveal } from '../components/ui';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 import { useInstitution } from '../lib/useInstitution';
 
 export default function BroadSheetManager() {
@@ -26,9 +26,9 @@ export default function BroadSheetManager() {
     (async () => {
       try {
         const [deptRes, sessRes, levelRes] = await Promise.all([
-          fetch(`${API}/api/departments`).then(r => (r.ok ? r.json() : [])),
-          fetch(`${API}/api/results/sessions`).then(r => (r.ok ? r.json() : [])),
-          fetch(`${API}/api/levels`).then(r => (r.ok ? r.json() : [])),
+          authFetch(`${API}/api/departments`).then(r => (r.ok ? r.json() : [])),
+          authFetch(`${API}/api/results/sessions`).then(r => (r.ok ? r.json() : [])),
+          authFetch(`${API}/api/levels`).then(r => (r.ok ? r.json() : [])),
         ]);
         setDepartments(Array.isArray(deptRes) ? deptRes : []);
         setSessions(Array.isArray(sessRes) ? sessRes : []);
@@ -46,7 +46,7 @@ export default function BroadSheetManager() {
           department_id: config.deptId, session_id: config.sessionId,
           level: config.level, semester: config.semester,
         });
-        const res = await fetch(`${API}/api/results/courses-by-criteria?${params.toString()}`);
+        const res = await authFetch(`${API}/api/results/courses-by-criteria?${params.toString()}`);
         if (res.ok) setCourses(await res.json());
       } catch (err) { console.error('Error loading filtered courses:', err); }
     })();
@@ -65,7 +65,7 @@ export default function BroadSheetManager() {
         department_id: config.deptId, session_id: config.sessionId,
         level: config.level, semester: config.semester,
       });
-      const response = await fetch(`${API}/api/reports/preview-broadsheet?${params.toString()}`);
+      const response = await authFetch(`${API}/api/reports/preview-broadsheet?${params.toString()}`);
       if (response.ok) setPreviewData(await response.json());
       else setError('Preview failed on the server.');
     } catch { setError('Network error while fetching the preview.'); }
@@ -76,7 +76,7 @@ export default function BroadSheetManager() {
     if (!config.deptId || !config.sessionId || !config.level) { setError('Select a department, session and level first.'); return; }
     setIsGenerating(true); setError(null);
     try {
-      const response = await fetch(`${API}/api/reports/download-report-bundle`, {
+      const response = await authFetch(`${API}/api/reports/download-report-bundle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -186,7 +186,7 @@ export default function BroadSheetManager() {
                         session: config.sessionId, semester: config.semester || '',
                         level: config.level, department: config.deptId,
                       });
-                      const res = await fetch(`${API}/api/reports/broadsheet-configs?${params.toString()}`);
+                      const res = await authFetch(`${API}/api/reports/broadsheet-configs?${params.toString()}`);
                       const cfgs = await res.json();
                       if (Array.isArray(cfgs) && cfgs.length) {
                         const codes = cfgs[0].courses || [];

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Search, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { PageHeader, Button, EmptyState, Spinner, Reveal } from '../components/ui';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 
 /**
  * Course Registration — the legacy "bulk register a level for a session" screen.
@@ -31,9 +31,9 @@ export default function CourseRegistration() {
     (async () => {
       try {
         const [d, s, l] = await Promise.all([
-          fetch(`${API}/api/departments`).then(r => (r.ok ? r.json() : [])),
-          fetch(`${API}/api/results/sessions`).then(r => (r.ok ? r.json() : [])),
-          fetch(`${API}/api/levels`).then(r => (r.ok ? r.json() : [])),
+          authFetch(`${API}/api/departments`).then(r => (r.ok ? r.json() : [])),
+          authFetch(`${API}/api/results/sessions`).then(r => (r.ok ? r.json() : [])),
+          authFetch(`${API}/api/levels`).then(r => (r.ok ? r.json() : [])),
         ]);
         setDepartments(Array.isArray(d) ? d : []);
         setSessions(Array.isArray(s) ? s : []);
@@ -47,7 +47,7 @@ export default function CourseRegistration() {
     (async () => {
       try {
         const params = new URLSearchParams({ department_id: deptId, session_id: sessionId, level });
-        const data = await (await fetch(`${API}/api/results/courses-by-criteria?${params.toString()}`)).json();
+        const data = await (await authFetch(`${API}/api/results/courses-by-criteria?${params.toString()}`)).json();
         setCourses(Array.isArray(data) ? data : []);
       } catch { setCourses([]); }
     })();
@@ -57,7 +57,7 @@ export default function CourseRegistration() {
     if (!level) return;
     (async () => {
       try {
-        const data = await (await fetch(`${API}/api/students`)).json();
+        const data = await (await authFetch(`${API}/api/students`)).json();
         setStudents(Array.isArray(data) ? data.filter(s => s.level === level) : []);
       } catch { setStudents([]); }
     })();
@@ -80,7 +80,7 @@ export default function CourseRegistration() {
     }
     setRegistering(true); setError(null); setResult(null);
     try {
-      const response = await fetch(`${API}/api/academic/bulk-register`, {
+      const response = await authFetch(`${API}/api/academic/bulk-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

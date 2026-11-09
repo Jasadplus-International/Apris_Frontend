@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { Button, Spinner } from '../components/ui';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 
 
 
@@ -20,7 +20,7 @@ export default function StudentSessionSlip({ studentId, sessionId, onBack }) {
         return;
       }
       try {
-        const response = await fetch(`${API}/api/academic/transcript/${studentId}?session_id=${sessionId}`);
+        const response = await authFetch(`${API}/api/academic/transcript/${studentId}?session_id=${sessionId}`);
         if (!response.ok) throw new Error(await response.text());
         setData(await response.json());
       } catch (err) {

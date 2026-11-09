@@ -5,7 +5,7 @@ import {
   HardDriveDownload, ShieldCheck, Trash2,
 } from 'lucide-react';
 import { PageHeader, Button, Reveal } from '../components/ui';
-import { API, APIReady } from '../lib/api';
+import { API, APIReady, authFetch } from '../lib/api';
 import { useInstitution, refreshInstitution, onInstitutionChanged } from '../lib/useInstitution';
 
 const STEPS = ['database', 'sessions', 'departments', 'students', 'courses', 'registrations', 'carryovers', 'users', 'caches', 'done'];
@@ -45,8 +45,8 @@ export default function InstitutionSetup() {
   const loadStats = async () => {
     try {
       const [st, bk] = await Promise.all([
-        fetch(`${API}/api/database/stats`).then(r => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`${API}/api/database/backups`).then(r => (r.ok ? r.json() : [])).catch(() => []),
+        authFetch(`${API}/api/database/stats`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+        authFetch(`${API}/api/database/backups`).then(r => (r.ok ? r.json() : [])).catch(() => []),
       ]);
       setStats(st);
       setBackups(Array.isArray(bk) ? bk : []);
@@ -62,7 +62,7 @@ export default function InstitutionSetup() {
     if (!jobId) return;
     pollRef.current = setInterval(async () => {
       try {
-        const data = await (await fetch(`${API}/api/database/import/status/${jobId}`)).json();
+        const data = await (await authFetch(`${API}/api/database/import/status/${jobId}`)).json();
         setJob(data);
         if (data.state === 'ready_to_apply' || data.state === 'failed' || data.state === 'applied') {
           clearInterval(pollRef.current);
@@ -81,7 +81,7 @@ export default function InstitutionSetup() {
       const form = new FormData();
       form.append('file', file);
       form.append('password', password || '989223');
-      const response = await fetch(`${API}/api/database/import`, { method: 'POST', body: form });
+      const response = await authFetch(`${API}/api/database/import`, { method: 'POST', body: form });
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.detail || 'Import failed to start');
@@ -99,7 +99,7 @@ export default function InstitutionSetup() {
     if (!jobId) return;
     setApplying(true); setError(null);
     try {
-      const response = await fetch(`${API}/api/database/apply/${jobId}`, { method: 'POST' });
+      const response = await authFetch(`${API}/api/database/apply/${jobId}`, { method: 'POST' });
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.detail || 'Apply failed');
@@ -119,7 +119,7 @@ export default function InstitutionSetup() {
   const discard = async () => {
     if (!jobId) return;
     try {
-      await fetch(`${API}/api/database/discard/${jobId}`, { method: 'POST' });
+      await authFetch(`${API}/api/database/discard/${jobId}`, { method: 'POST' });
     } catch { /* job may already be gone */ }
     setJob(null); setJobId(null); setFile(null);
   };

@@ -4,7 +4,7 @@ import {
   Users, Building2, CalendarRange, AlertTriangle, FileSpreadsheet, GraduationCap, ArrowRight,
 } from 'lucide-react';
 import { PageHeader, StatCard, CountUp } from '../components/ui';
-import { API, APIReady } from '../lib/api';
+import { API, APIReady, authFetch } from '../lib/api';
 import { useInstitution } from '../lib/useInstitution';
 
 export default function DashboardHome() {
@@ -18,9 +18,9 @@ export default function DashboardHome() {
         // Wait for the API-base probe (localhost -> 127.0.0.1 -> [::1] fallback)
         await APIReady;
         const [db, depts, sess] = await Promise.all([
-          fetch(`${API}/api/debug/db-check`).then(r => r.json()),
-          fetch(`${API}/api/departments`).then(r => r.json()),
-          fetch(`${API}/api/sessions`).then(r => r.json()),
+          authFetch(`${API}/api/debug/db-check`).then(r => r.json()),
+          authFetch(`${API}/api/departments`).then(r => r.json()),
+          authFetch(`${API}/api/sessions`).then(r => r.json()),
         ]);
         setStats({
           students: db.total_students ?? 0,

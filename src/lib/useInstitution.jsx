@@ -7,7 +7,7 @@ let pending = null;
 const load = () => {
   if (cache) return Promise.resolve(cache);
   if (!pending) {
-    pending = APIReady.then(() => fetch(`${API}/api/institution`))
+    pending = APIReady.then(() => authFetch(`${API}/api/institution`))
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         cache = data || {

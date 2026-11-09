@@ -6,7 +6,7 @@ import {
   Home, LogOut, ChevronDown,
 } from 'lucide-react';
 import { useInstitution, useInstitutionVersion, refreshInstitution } from '../lib/useInstitution';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', hint: 'Overview', icon: LayoutDashboard },
@@ -36,7 +36,7 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
   useEffect(() => {
     if (!isSuperAdmin) return; // university accounts: never fetch the platform roster
     const load = () =>
-      fetch(`${API}/api/database/profiles`)
+      authFetch(`${API}/api/database/profiles`)
         .then((r) => (r.ok ? r.json() : []))
         .then(setProfiles)
         .catch(() => {});
@@ -50,7 +50,7 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
     if (!code || code === inst.code || switching) return;
     setSwitching(true);
     try {
-      const r = await fetch(`${API}/api/database/active`, {
+      const r = await authFetch(`${API}/api/database/active`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),

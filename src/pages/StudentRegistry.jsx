@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Users, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader, Modal, Button, EmptyState, Reveal } from '../components/ui';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 
 
 const emptyStudent = {
@@ -28,7 +28,7 @@ export default function StudentRegistry() {
     setSearching(true);
     try {
       const params = new URLSearchParams({ q, limit: String(PAGE), offset: String(offset) });
-      const data = await (await fetch(`${API}/api/students?${params.toString()}`)).json();
+      const data = await (await authFetch(`${API}/api/students?${params.toString()}`)).json();
       const list = Array.isArray(data?.students) ? data.students : [];
       setTotal(typeof data?.total === 'number' ? data.total : list.length);
       setStudents(append ? [...students, ...list] : list);
@@ -43,7 +43,7 @@ export default function StudentRegistry() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(`${API}/api/departments`);
+      const response = await authFetch(`${API}/api/departments`);
       const data = await response.json();
       setDepartments(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -67,7 +67,7 @@ export default function StudentRegistry() {
     e.preventDefault();
     setSaving(true);
     try {
-      const response = await fetch(`${API}/api/students/add`, {
+      const response = await authFetch(`${API}/api/students/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStudent),

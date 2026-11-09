@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ClipboardList, AlertTriangle } from 'lucide-react';
 import { PageHeader, Spinner, EmptyState, Reveal } from '../components/ui';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 
 
 const gradeColor = (g) =>
@@ -24,7 +24,7 @@ export default function ResultEntry() {
       // Only courses that actually have registrations in this session,
       // with their registered-student count (keeps the dropdown meaningful)
       const q = sessionId ? `?session_id=${sessionId}` : '';
-      const res = await fetch(`${API}/api/results/courses-with-regs${q}`);
+      const res = await authFetch(`${API}/api/results/courses-with-regs${q}`);
       const data = await res.json();
       setCourses(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -35,7 +35,7 @@ export default function ResultEntry() {
 
   const fetchSessions = async () => {
     try {
-      const data = await (await fetch(`${API}/api/results/sessions`)).json();
+      const data = await (await authFetch(`${API}/api/results/sessions`)).json();
       setSessions(Array.isArray(data) ? data : []);
       if (Array.isArray(data) && data.length > 0) setSelectedSession(data[0].id);
     } catch (e) {
@@ -62,7 +62,7 @@ export default function ResultEntry() {
   const fetchStudents = async () => {
     setLoading(true); setError(null);
     try {
-      const response = await fetch(`${API}/api/results/students-by-course?course_id=${selectedCourse}&session_id=${selectedSession}`);
+      const response = await authFetch(`${API}/api/results/students-by-course?course_id=${selectedCourse}&session_id=${selectedSession}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       const list = Array.isArray(data) ? data : [];
@@ -86,7 +86,7 @@ export default function ResultEntry() {
 
     try {
       const student = updatedStudents.find(s => s.registration_id === regId);
-      await fetch(`${API}/api/results/save-score`, {
+      await authFetch(`${API}/api/results/save-score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ registration_id: regId, course_work: student.course_work, exam_score: student.exam_score }),

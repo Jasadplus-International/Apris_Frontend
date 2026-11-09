@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, User, ArrowLeft, Loader2, GraduationCap } from 'lucide-react';
-import { API, APIReady } from '../lib/api';
+import { API, APIReady, authFetch } from '../lib/api';
 import { refreshInstitution } from '../lib/useInstitution';
 import jpLogoWhite from '../assets/jasadplus_logo_white.png';
 
@@ -23,7 +23,7 @@ export default function SignIn({ onSignedIn, onBack }) {
     try {
       await APIReady;
       const body = new URLSearchParams({ username: username.trim(), password, grant_type: 'password' });
-      const r = await fetch(`${API}/api/auth/login`, {
+      const r = await authFetch(`${API}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,

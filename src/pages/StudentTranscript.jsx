@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollText, FileSearch, Printer, ChevronRight } from 'lucide-react';
 import { PageHeader, Button, Spinner, EmptyState, Reveal } from '../components/ui';
-import { API } from '../lib/api';
+import { API, authFetch } from '../lib/api';
 import { useInstitution } from '../lib/useInstitution';
 
 
@@ -19,7 +19,7 @@ export default function StudentTranscript({ setSlipData, setActivePage }) {
     setIsLoading(true); setError(null);
     try {
       // encodeURIComponent handles the slashes in matric numbers (e.g., 13/PDBED/30287)
-      const response = await fetch(`${API}/api/academic/transcript/${encodeURIComponent(studentId)}`);
+      const response = await authFetch(`${API}/api/academic/transcript/${encodeURIComponent(studentId)}`);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Server error (${response.status}): ${errorText}`);

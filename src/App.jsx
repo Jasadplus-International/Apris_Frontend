@@ -13,7 +13,8 @@ import CourseRegistration from './pages/CourseRegistration';
 import InstitutionSetup from './pages/InstitutionSetup';
 import Landing from './pages/Landing';
 import SignIn from './pages/SignIn';
-import { useInstitutionVersion } from './lib/useInstitution';
+import { useInstitutionVersion, refreshInstitution } from './lib/useInstitution';
+import { API, authFetch } from './lib/api';
 
 /* Crash guard: a broken page must never blank the whole app */
 class ErrorBoundary extends Component {
@@ -51,8 +52,43 @@ function App() {
   // Dashboard workflow shortcuts navigate via custom event
   useEffect(() => {
     const off = (e) => setActivePage(e.detail);
+    const onExpired = () => { setSlipData({ studentId: '', sessionId: '' }); setView('signin'); setActivePage('dashboard'); };
     window.addEventListener('arpis-navigate', off);
-    return () => window.removeEventListener('arpis-navigate', off);
+    window.addEventListener('arpis-session-expired', onExpired);
+    return () => {
+      window.removeEventListener('arpis-navigate', off);
+      window.removeEventListener('arpis-session-expired', onExpired);
+    };
+  }, []);
+
+  // Session restore: a saved token resumes straight into the platform, with
+  // the server re-locked to the university that owns the account.
+  useEffect(() => {
+    const boot = async () => {
+      let token = null;
+      try { token = localStorage.getItem('arpis_token'); } catch {}
+      if (!token) return; // no session — stay on the public landing page
+      try {
+        const r = await authFetch(`${API}/api/auth/me`);
+        if (!r.ok) { // expired/invalid — drop the stale session
+          try { localStorage.removeItem('arpis_token'); localStorage.removeItem('arpis_role'); } catch {}
+          return;
+        }
+        const me = await r.json();
+        try { localStorage.setItem('arpis_role', me.role || ''); } catch {}
+        if (me.institution) {
+          // rebind the server to this university (idempotent if already active)
+          await authFetch(`${API}/api/database/active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: me.institution }),
+          });
+        }
+        await refreshInstitution();
+        setView('app');
+      } catch { /* backend down — landing stays until signed in */ }
+    };
+    boot();
   }, []);
 
   if (view === 'landing' || activePage === 'landing') {
