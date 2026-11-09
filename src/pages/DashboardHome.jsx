@@ -5,10 +5,12 @@ import {
 } from 'lucide-react';
 import { PageHeader, StatCard, CountUp } from '../components/ui';
 import { API, APIReady } from '../lib/api';
+import { useInstitution } from '../lib/useInstitution';
 
 export default function DashboardHome() {
   const [stats, setStats] = useState(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const inst = useInstitution();
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +53,24 @@ export default function DashboardHome() {
         className="mb-6 rounded-2xl bg-ink text-white px-8 py-7 flex flex-wrap items-center justify-between gap-6 shadow-[0_18px_40px_-18px_rgba(16,30,56,0.5)]"
       >
         <div>
+          {/* Institution identity — this university's own crest and name */}
+          <div className="flex items-center gap-3 mb-4">
+            {inst.logo_url ? (
+              <img
+                src={`${API}${inst.logo_url}`}
+                alt={`${inst.caps_name || 'Institution'} logo`}
+                className="h-11 max-w-[210px] rounded-lg bg-white/95 p-1.5 object-contain shadow-sm"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-lg bg-white/15 grid place-items-center">
+                <GraduationCap size={20} className="text-white/80" />
+              </div>
+            )}
+            <div className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-white/50 leading-snug">
+              {inst.caps_name || 'University Records'}
+            </div>
+          </div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-brass animate-pulse" />
             <span className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-white/50">Current session</span>
