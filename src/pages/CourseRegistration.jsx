@@ -107,7 +107,7 @@ export default function CourseRegistration() {
       <PageHeader
         eyebrow="Capture"
         title="Course Registration"
-        subtitle="Register a level for a session — the legacy already-passed guard keeps any course re-registration blocked after a ≥ 40 score."
+        subtitle="Register a level for a session — courses already passed with a ≥ 40 score are blocked from re-registration."
       />
 
       {error && (
@@ -121,7 +121,7 @@ export default function CourseRegistration() {
           <CheckCircle2 size={18} className="text-pass mt-0.5" />
           <div>
             <div className="font-semibold text-pass">Registration complete</div>
-            <div className="text-mute mt-0.5">{result.registered} registered · {result.skipped_passed} skipped (already passed the legacy guard){result.errors?.length ? ` · ${result.errors.length} errors` : ''}.</div>
+            <div className="text-mute mt-0.5">{result.registered} registered · {result.skipped_passed} skipped (already passed){result.errors?.length ? ` · ${result.errors.length} errors` : ''}.</div>
           </div>
         </div>
       )}

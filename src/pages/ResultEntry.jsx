@@ -105,7 +105,7 @@ export default function ResultEntry() {
       <PageHeader
         eyebrow="Capture"
         title="Result Entry"
-        subtitle="Score capture with live totals and grades. Marks below 40 raise a carry-over, exactly as the legacy trigger did."
+        subtitle="Score capture with live totals and grades. Marks below 40 raise a carry-over automatically."
       />
 
       {error && (

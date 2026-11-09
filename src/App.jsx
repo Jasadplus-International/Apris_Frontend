@@ -11,6 +11,9 @@ import DepartmentManager from './pages/DepartmentManager';
 import CourseManager from './pages/CourseManager';
 import CourseRegistration from './pages/CourseRegistration';
 import InstitutionSetup from './pages/InstitutionSetup';
+import Landing from './pages/Landing';
+import SignIn from './pages/SignIn';
+import { useInstitutionVersion } from './lib/useInstitution';
 
 /* Crash guard: a broken page must never blank the whole app */
 class ErrorBoundary extends Component {
@@ -39,8 +42,11 @@ class ErrorBoundary extends Component {
 }
 
 function App() {
+  // 'landing' = public site, 'signin' = the sign-in screen, 'app' = the platform
+  const [view, setView] = useState('landing');
   const [activePage, setActivePage] = useState('dashboard');
   const [slipData, setSlipData] = useState({ studentId: '', sessionId: '' });
+  const instVersion = useInstitutionVersion(); // pages remount when the university changes
 
   // Dashboard workflow shortcuts navigate via custom event
   useEffect(() => {
@@ -49,12 +55,26 @@ function App() {
     return () => window.removeEventListener('arpis-navigate', off);
   }, []);
 
+  if (view === 'landing' || activePage === 'landing') {
+    return <Landing onEnter={() => { setView('signin'); setActivePage('dashboard'); }} />;
+  }
+
+  if (view === 'signin') {
+    return (
+      <SignIn
+        onSignedIn={() => { setView('app'); setActivePage('dashboard'); }}
+        onBack={() => { setView('landing'); setActivePage('dashboard'); }}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen bg-paper font-sans">
       <Sidebar
         setActivePage={setActivePage}
         activePage={activePage}
         setSlipData={setSlipData}
+        onSignOut={() => { setSlipData({ studentId: '', sessionId: '' }); setView('signin'); setActivePage('dashboard'); }}
       />
 
       <main className="flex-1 overflow-y-auto">
@@ -62,7 +82,7 @@ function App() {
           <ErrorBoundary>
           <AnimatePresence mode="wait">
             <motion.div
-              key={activePage + (slipData.sessionId || '')}
+              key={activePage + (slipData.sessionId || '') + String(instVersion)}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}

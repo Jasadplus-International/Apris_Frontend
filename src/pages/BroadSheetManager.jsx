@@ -114,7 +114,7 @@ export default function BroadSheetManager() {
       <PageHeader
         eyebrow="Reports"
         title="BroadSheet Manager"
-        subtitle="Official report generation — the exact three-file bundle the legacy ARPIS software produced."
+        subtitle="Official report generation — the three-file report bundle for the registry."
         actions={inst.logo_url ? (
           <div className="flex items-center gap-2 bg-white border border-line rounded-lg px-3 py-2">
             <img src={`${API}${inst.logo_url}`} alt="" className="h-7 w-auto object-contain" />
@@ -199,7 +199,7 @@ export default function BroadSheetManager() {
                     }}
                     className="text-[12.5px] font-semibold text-ink hover:text-seal inline-flex items-center gap-1.5"
                   >
-                    <ListChecks size={14} /> Load legacy preset
+                    <ListChecks size={14} /> Load saved preset
                   </button>
                   <button onClick={() => setSelectedCourses([])} className="text-[12.5px] font-semibold text-mute hover:text-ink">Clear</button>
                 </div>
@@ -236,7 +236,7 @@ export default function BroadSheetManager() {
           <div className="bg-ink text-white rounded-2xl p-7 sticky top-0 shadow-[0_18px_40px_-18px_rgba(16,30,56,0.5)]">
             <div className="font-mono text-[10.5px] tracking-[0.18em] uppercase text-white/45 mb-1">The bundle</div>
             <div className="font-display text-2xl font-semibold mb-1">Three official files</div>
-            <p className="text-white/55 text-[12.5px] mb-5">One download, exactly matching the legacy report set:</p>
+            <p className="text-white/55 text-[12.5px] mb-5">One download — the official report set:</p>
             <ul className="space-y-3.5 mb-7">
               {[
                 { icon: BookOpenText, t: 'BroadSheet', d: 'RESULTS FOR… detailed register' },

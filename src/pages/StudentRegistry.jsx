@@ -94,7 +94,7 @@ export default function StudentRegistry() {
       <PageHeader
         eyebrow="Registry"
         title="Student Registry"
-        subtitle="The official enrolment records — matching the legacy StudentDetails register."
+        subtitle="The official enrolment records register."
         actions={
           <>
             <Button variant="ghost" icon={UserPlus} onClick={() => setIsModalOpen(true)}>Add student</Button>

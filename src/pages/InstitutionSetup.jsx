@@ -18,7 +18,7 @@ const STEP_LABELS = {
   registrations: 'Registrations & results',
   carryovers: 'Carry-overs (ReRunTable)',
   users: 'User accounts',
-  caches: 'Legacy summaries & configs',
+  caches: 'Summaries & configs',
 };
 
 const COUNT_LABELS = [
@@ -74,8 +74,8 @@ export default function InstitutionSetup() {
 
   const startImport = async () => {
     setError(null); setJob(null); setJobId(null); setAppliedInfo(null);
-    if (!file) { setError('Choose the legacy .mdb database file.'); return; }
-    if (!password.trim()) { setError('Type the legacy database password first.'); return; }
+    if (!file) { setError('Choose the .mdb database file.'); return; }
+    if (!password.trim()) { setError('Type the database password first.'); return; }
     setStarting(true);
     try {
       const form = new FormData();
@@ -132,7 +132,7 @@ export default function InstitutionSetup() {
       <PageHeader
         eyebrow="Onboarding"
         title="Institution"
-        subtitle="Upload the university's legacy ARPIS database (.mdb). Everything — students, results, carry-overs — is rebuilt from that file; current records stay in place until you save."
+        subtitle="Upload the university's ARPIS database (.mdb). Everything — students, results, carry-overs — is rebuilt from that file; current records stay in place until you save."
       />
 
       {error && (
@@ -146,9 +146,9 @@ export default function InstitutionSetup() {
         <div className="space-y-6 min-w-0">
           <Reveal>
             <div className="bg-white border border-line rounded-xl p-6">
-              <h3 className="font-display text-lg font-semibold text-ink mb-1">Import a legacy database</h3>
+              <h3 className="font-display text-lg font-semibold text-ink mb-1">Import a database</h3>
               <p className="text-[12.5px] text-mute mb-5">
-                The file must come from the legacy ARPIS software (same structure across copies).
+                The institution's records file (.mdb / .accdb) — same structure across copies.
                 It is built into a private staging copy first — the records below stay in place until you save.
               </p>
 
@@ -168,7 +168,7 @@ export default function InstitutionSetup() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-mute mb-1.5">Legacy database file (.mdb)</label>
+                  <label className="block text-[12px] font-semibold text-mute mb-1.5">Database file (.mdb)</label>
                   <label className="field cursor-pointer flex items-center gap-2 text-[13px] hover:border-ink/25" style={{ paddingTop: 8, paddingBottom: 8 }}>
                     <Upload size={15} />
                     <span className={file ? 'text-ink' : 'text-mute'}>{file ? file.name : 'Choose .mdb file…'}</span>
@@ -178,7 +178,7 @@ export default function InstitutionSetup() {
                 </div>
                 <div className="max-w-[220px]">
                   <label className="block text-[12px] font-semibold text-mute mb-1.5">Database password</label>
-                  <input type="password" className="field font-mono text-[13px]" placeholder="Type the legacy database password…"
+                  <input type="password" className="field font-mono text-[13px]" placeholder="Type the database password…"
                     value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" />
                 </div>
                 <Button onClick={startImport} icon={Database} disabled={starting || !!jobId}>
