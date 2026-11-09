@@ -92,7 +92,7 @@ export default function SignIn({ onSignedIn, onBack }) {
                 <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
                 <input
                   autoFocus
-                  className="field pl-9"
+                  className="field icon"
                   placeholder="e.g. corona_admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -106,7 +106,7 @@ export default function SignIn({ onSignedIn, onBack }) {
                 <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
                 <input
                   type="password"
-                  className="field pl-9"
+                  className="field icon"
                   placeholder="Your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

@@ -112,6 +112,9 @@ body {
 }
 .field::placeholder { color: #9aa5b5; }
 
+/* input with a leading icon — keeps text clear of the icon */
+.field.icon { padding-left: 36px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
