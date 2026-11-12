@@ -8,15 +8,16 @@ import { PageHeader, Button, Reveal } from '../components/ui';
 import { API, APIReady, authFetch } from '../lib/api';
 import { useInstitution, refreshInstitution, onInstitutionChanged } from '../lib/useInstitution';
 
-const STEPS = ['database', 'sessions', 'departments', 'students', 'courses', 'registrations', 'carryovers', 'users', 'caches', 'done'];
+const STEPS = ['password', 'database', 'sessions', 'departments', 'students', 'courses', 'registrations', 'carryovers', 'users', 'caches', 'done'];
 const STEP_LABELS = {
+  password: 'Verify access / read file',
   database: 'Create & bootstrap staging copy',
   sessions: 'Academic sessions',
   departments: 'Departments',
   students: 'Students & profiles',
   courses: 'Course catalogue',
   registrations: 'Registrations & results',
-  carryovers: 'Carry-overs (ReRunTable)',
+  carryovers: 'Carry-overs',
   users: 'User accounts',
   caches: 'Summaries & configs',
 };
@@ -72,15 +73,17 @@ export default function InstitutionSetup() {
     return () => clearInterval(pollRef.current);
   }, [jobId]);
 
+  const isWorkbook = !!file && /\.(xlsx|xlsm|xls)$/i.test(file.name || '');
+
   const startImport = async () => {
     setError(null); setJob(null); setJobId(null); setAppliedInfo(null);
-    if (!file) { setError('Choose the .mdb database file.'); return; }
-    if (!password.trim()) { setError('Type the database password first.'); return; }
+    if (!file) { setError('Choose the records file — the Import Workbook (.xlsx) or a legacy .mdb database.'); return; }
+    if (!isWorkbook && !password.trim()) { setError('Type the legacy database password first (only .mdb imports need one).'); return; }
     setStarting(true);
     try {
       const form = new FormData();
       form.append('file', file);
-      form.append('password', password || '989223');
+      if (!isWorkbook) form.append('password', password || '');
       const response = await authFetch(`${API}/api/database/import`, { method: 'POST', body: form });
       if (!response.ok) {
         const err = await response.json();
@@ -92,6 +95,22 @@ export default function InstitutionSetup() {
       setError(String(e.message || e));
     } finally {
       setStarting(false);
+    }
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      const response = await authFetch(`${API}/api/database/import-template`);
+      if (!response.ok) throw new Error('Could not download the template');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ARPIS_Import_Workbook.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(String(e.message || e));
     }
   };
 
@@ -132,7 +151,7 @@ export default function InstitutionSetup() {
       <PageHeader
         eyebrow="Onboarding"
         title="Institution"
-        subtitle="Upload the university's ARPIS database (.mdb). Everything — students, results, carry-overs — is rebuilt from that file; current records stay in place until you save."
+        subtitle="Bring in the university's records with the ARPIS Import Workbook (Excel) or a legacy .mdb database. Everything is rebuilt into a private staging copy; current records stay in place until you save."
       />
 
       {error && (
@@ -146,10 +165,11 @@ export default function InstitutionSetup() {
         <div className="space-y-6 min-w-0">
           <Reveal>
             <div className="bg-white border border-line rounded-xl p-6">
-              <h3 className="font-display text-lg font-semibold text-ink mb-1">Import a database</h3>
+              <h3 className="font-display text-lg font-semibold text-ink mb-1">Import records</h3>
               <p className="text-[12.5px] text-mute mb-5">
-                The institution's records file (.mdb / .accdb) — same structure across copies.
-                It is built into a private staging copy first — the records below stay in place until you save.
+                Fill the <span className="font-semibold text-ink">ARPIS Import Workbook</span> (Excel — one sheet
+                per table) or submit the institution's legacy <span className="font-mono text-[11.5px]">.mdb</span> file.
+                Everything lands in a private staging copy first — the records below stay in place until you save.
               </p>
 
               {appliedInfo && (
@@ -168,22 +188,31 @@ export default function InstitutionSetup() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[12px] font-semibold text-mute mb-1.5">Database file (.mdb)</label>
+                  <label className="block text-[12px] font-semibold text-mute mb-1.5">Records file — workbook (.xlsx) or legacy database (.mdb)</label>
                   <label className="field cursor-pointer flex items-center gap-2 text-[13px] hover:border-ink/25" style={{ paddingTop: 8, paddingBottom: 8 }}>
                     <Upload size={15} />
-                    <span className={file ? 'text-ink' : 'text-mute'}>{file ? file.name : 'Choose .mdb file…'}</span>
-                    <input type="file" accept=".mdb,.accdb" className="hidden"
+                    <span className={file ? 'text-ink' : 'text-mute'}>
+                      {file ? file.name : 'Choose ARPIS_Import_Workbook.xlsx or a .mdb file…'}
+                    </span>
+                    <input type="file" accept=".xlsx,.xlsm,.xls,.mdb,.accdb" className="hidden"
                       onChange={(e) => setFile(e.target.files?.[0] || null)} />
                   </label>
                 </div>
-                <div className="max-w-[220px]">
-                  <label className="block text-[12px] font-semibold text-mute mb-1.5">Database password</label>
-                  <input type="password" className="field font-mono text-[13px]" placeholder="Type the database password…"
+                <div className="max-w-[260px]">
+                  <label className="block text-[12px] font-semibold text-mute mb-1.5">
+                    Legacy .mdb password <span className="font-normal text-mute/70">(workbook imports don't need one)</span>
+                  </label>
+                  <input type="password" className="field font-mono text-[13px]" placeholder="Only for legacy .mdb files"
                     value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" />
                 </div>
-                <Button onClick={startImport} icon={Database} disabled={starting || !!jobId}>
-                  {starting ? 'Uploading…' : jobId ? 'Import running…' : 'Process database file'}
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button onClick={startImport} icon={Database} disabled={starting || !!jobId}>
+                    {starting ? 'Uploading…' : jobId ? 'Import running…' : 'Process records file'}
+                  </Button>
+                  <Button variant="ghost" onClick={downloadTemplate} icon={HardDriveDownload}>
+                    Download the Import Workbook template
+                  </Button>
+                </div>
               </div>
 
               {job && (

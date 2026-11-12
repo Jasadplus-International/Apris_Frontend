@@ -17,7 +17,7 @@ const menuItems = [
   { id: 'transcript', label: 'Transcripts', hint: 'Per student', icon: ScrollText },
   { id: 'departments', label: 'Departments', hint: 'Configure', icon: Building2 },
   { id: 'courses', label: 'Courses', hint: 'Catalogue', icon: BookOpen },
-  { id: 'institution', label: 'Institution', hint: 'Database import', icon: Database },
+  { id: 'institution', label: 'Institution', hint: 'Workbook / .mdb import', icon: Database },
 ];
 
 export default function Sidebar({ setActivePage, activePage, setSlipData, onSignOut }) {
