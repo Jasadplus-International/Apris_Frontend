@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ClipboardList, AlertTriangle } from 'lucide-react';
+import { ClipboardList, AlertTriangle, History } from 'lucide-react';
 import { PageHeader, Spinner, EmptyState, Reveal } from '../components/ui';
 import { API, authFetch } from '../lib/api';
 
@@ -14,8 +14,18 @@ export default function ResultEntry() {
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [students, setStudents] = useState([]);
+  const [changes, setChanges] = useState([]);
+  const [showChanges, setShowChanges] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const fetchChanges = async () => {
+    if (!selectedCourse) { setChanges([]); return; }
+    try {
+      const r = await authFetch(`${API}/api/results/change-log?course_id=${selectedCourse}`);
+      setChanges(r.ok ? await r.json() : []);
+    } catch { setChanges([]); }
+  };
 
   useEffect(() => { fetchSessions(); }, []);
 
@@ -45,7 +55,7 @@ export default function ResultEntry() {
   };
 
   useEffect(() => {
-    if (selectedCourse && selectedSession) fetchStudents();
+    if (selectedCourse && selectedSession) { fetchStudents(); fetchChanges(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCourse, selectedSession]);
 
@@ -91,6 +101,11 @@ export default function ResultEntry() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ registration_id: regId, course_work: student.course_work, exam_score: student.exam_score }),
       });
+      // refresh the audit panel shortly after an actual change lands
+      const wasChanged = students.some(s2 =>
+        s2.registration_id === regId &&
+        (s2.course_work !== student.course_work || s2.exam_score !== student.exam_score));
+      if (wasChanged) setTimeout(fetchChanges, 400);
     } catch (e) { console.error('Autosave failed:', e); }
   };
 
@@ -203,6 +218,52 @@ export default function ResultEntry() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </Reveal>
+      )}
+
+      {/* Change history — the audit trail */}
+      {selectedCourse && (
+        <Reveal>
+          <div className="doc-sheet rounded-xl mt-5 overflow-hidden">
+            <button
+              onClick={() => setShowChanges(!showChanges)}
+              className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-[#f8fafd] transition-colors"
+            >
+              <span className="inline-flex items-center gap-2.5 text-[13px] font-semibold text-ink">
+                <History size={15} className="text-mute" />
+                Change history
+                {changes.length > 0 && (
+                  <span className="stamp text-mute" style={{ color: '#5d6b82' }}>{changes.length}</span>
+                )}
+              </span>
+              <span className="text-[12px] text-mute">{showChanges ? 'Hide' : 'Show'}</span>
+            </button>
+            {showChanges && (
+              changes.length === 0 ? (
+                <div className="px-5 pb-4 text-[12.5px] text-mute">
+                  No mark changes recorded for this course yet — edits made here appear with who made them and when.
+                </div>
+              ) : (
+                <table className="ledger">
+                  <thead>
+                    <tr><th>When</th><th>Student</th><th>Course</th><th>Old</th><th>New</th><th>Changed by</th></tr>
+                  </thead>
+                  <tbody>
+                    {changes.map((c, i) => (
+                      <tr key={i}>
+                        <td className="text-[12px] text-mute whitespace-nowrap">{new Date(c.changed_at).toLocaleString()}</td>
+                        <td className="text-[12.5px]"><span className="font-mono text-mute mr-2">{c.matric_no}</span>{c.name}</td>
+                        <td className="text-[12.5px] font-mono">{c.course}</td>
+                        <td className="font-mono text-[12.5px] text-mute tabular-nums">{c.old[0]} / {c.old[1]}</td>
+                        <td className="font-mono text-[12.5px] font-semibold text-ink tabular-nums">{c.new[0]} / {c.new[1]}</td>
+                        <td className="text-[12.5px]">{c.by === 'bulk-import' ? <span className="stamp text-mute">bulk import</span> : c.by}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            )}
           </div>
         </Reveal>
       )}
