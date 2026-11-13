@@ -191,8 +191,8 @@ export default function Landing({ onEnter }) {
             </a>
           </motion.div>
 
-          {/* mini ledger preview */}
-          <motion.div {...fade(0.36)} className="mt-16 doc-sheet rounded-2xl overflow-hidden max-w-3xl">
+          {/* mini ledger preview — dark text forced so cell values stay readable on the white sheet */}
+          <motion.div {...fade(0.36)} className="mt-16 doc-sheet rounded-2xl overflow-hidden max-w-3xl text-[#16233C]">
             <div className="bg-[#fafbfd] border-b border-line px-5 py-3 flex items-center justify-between">
               <div className="text-[11px] font-mono tracking-wide text-mute uppercase">Departmental broadsheet · generated sheet</div>
               <div className="stamp" style={{ color: '#1f7a4d' }}>GPA verified</div>
@@ -204,11 +204,15 @@ export default function Landing({ onEnter }) {
                 </tr>
               </thead>
               <tbody>
-                <tr><td>1</td><td>CCED/PDECE/24/001</td><td>OBI Martina</td><td>24</td><td>52</td><td>76</td><td>A</td><td className="font-semibold text-pass">4.72</td></tr>
-                <tr><td>2</td><td>CCED/PDECE/24/002</td><td>OKAFOR Daniel</td><td>21</td><td>41</td><td>62</td><td>B</td><td className="font-semibold text-pass">3.88</td></tr>
-                <tr><td>3</td><td>CCED/PDECE/24/003</td><td>EZE Grace</td><td>18</td><td>34</td><td>52</td><td>C</td><td className="font-semibold">3.15</td></tr>
+                <tr><td className="font-mono text-[12.5px] text-mute">1</td><td className="font-mono text-[12.5px] text-mute">CCED/PDECE/24/001</td><td className="font-medium">OBI Martina</td><td>24</td><td>52</td><td className="font-semibold">76</td><td className="font-semibold" style={{ color: '#2C5697' }}>A</td><td className="font-semibold text-pass">4.72</td></tr>
+                <tr><td className="font-mono text-[12.5px] text-mute">2</td><td className="font-mono text-[12.5px] text-mute">CCED/PDECE/24/002</td><td className="font-medium">OKAFOR Daniel</td><td>21</td><td>41</td><td className="font-semibold">62</td><td className="font-semibold" style={{ color: '#2C5697' }}>B</td><td className="font-semibold text-pass">3.88</td></tr>
+                <tr><td className="font-mono text-[12.5px] text-mute">3</td><td className="font-mono text-[12.5px] text-mute">CCED/PDECE/24/003</td><td className="font-medium">EZE Grace</td><td>18</td><td>34</td><td className="font-semibold">52</td><td className="font-semibold" style={{ color: '#C8282C' }}>C</td><td className="font-semibold">3.15</td></tr>
               </tbody>
             </table>
+            <div className="border-t border-line px-5 py-2.5 text-[10.5px] font-mono text-mute flex items-center justify-between">
+              <span>COMPUTED ON THE OFFICIAL A–F GRADING SCALE</span>
+              <span>CGPA COLUMN NEXT</span>
+            </div>
           </motion.div>
         </div>
       </section>
