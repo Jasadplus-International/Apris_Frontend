@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ScrollText, FileSearch, Printer, ChevronRight } from 'lucide-react';
+import { ScrollText, FileSearch, Printer, ChevronRight, FileDown } from 'lucide-react';
 import { PageHeader, Button, Spinner, EmptyState, Reveal } from '../components/ui';
 import { API, authFetch } from '../lib/api';
 import { useInstitution } from '../lib/useInstitution';
@@ -12,14 +12,35 @@ export default function StudentTranscript({ setSlipData, setActivePage }) {
   const [studentId, setStudentId] = useState('');
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [downloading, setDownloading] = useState('');
   const [error, setError] = useState(null);
+
+  const saveBlob = async (kind, sessionId = '') => {
+    if (!studentId.trim()) return;
+    setDownloading(kind);
+    try {
+      const url = `${API}/api/academic/${kind}?student=${encodeURIComponent(studentId)}` +
+        (sessionId ? `&session_id=${encodeURIComponent(sessionId)}` : '');
+      const r = await authFetch(url);
+      if (!r.ok) { const t = await r.text(); throw new Error(t.slice(0, 120)); }
+      const blob = await r.blob();
+      const cd = r.headers.get('Content-Disposition') || '';
+      const m = cd.match(/filename="?([^";]+)"?/);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = m?.[1] || 'ARPIS_document.pdf';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) { setError(`PDF failed: ${String(e.message || e)}`); }
+    finally { setDownloading(''); }
+  };
 
   const fetchTranscript = async () => {
     if (!studentId.trim()) return;
     setIsLoading(true); setError(null);
     try {
-      // encodeURIComponent handles the slashes in matric numbers (e.g., 13/PDBED/30287)
-      const response = await authFetch(`${API}/api/academic/transcript/${encodeURIComponent(studentId)}`);
+      // query param — matric numbers contain slashes that break path segments
+      const response = await authFetch(`${API}/api/academic/transcript?student=${encodeURIComponent(studentId)}`);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Server error (${response.status}): ${errorText}`);
@@ -32,9 +53,30 @@ export default function StudentTranscript({ setSlipData, setActivePage }) {
     }
   };
 
-  const standing = (cgpa) =>
-    cgpa >= 4.5 ? 'First Class' : cgpa >= 3.5 ? 'Second Class Upper'
-    : cgpa >= 2.4 ? 'Second Class Lower' : 'Pass';
+  const standing = (cgpa) => {
+    // the grading scale is 10-point; normalize to the 5-point classification bands
+    const g = Number(cgpa) / 2;
+    return g >= 4.5 ? 'First Class' : g >= 3.5 ? 'Second Class Upper'
+         : g >= 2.4 ? 'Second Class Lower' : 'Pass';
+  };
+
+  const downloadPdf = async (kind, sessionId = '') => {
+    if (!studentId.trim()) return;
+    setDownloading(kind);
+    try {
+      const r = await authFetch(`${API}/api/academic/${kind}?student=${encodeURIComponent(studentId)}` +
+        (sessionId ? `&session_id=${encodeURIComponent(sessionId)}` : ''));
+      if (!r.ok) throw new Error((await r.text()).slice(0, 120));
+      const blob = await r.blob();
+      const m = (r.headers.get('Content-Disposition') || '').match(/filename="?([^";]+)"?/);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = m?.[1] || 'ARPIS_document.pdf';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) { setError(`PDF failed: ${String(e.message || e)}`); }
+    finally { setDownloading(''); }
+  };
 
   return (
     <div>
@@ -59,6 +101,14 @@ export default function StudentTranscript({ setSlipData, setActivePage }) {
           </div>
           <Button icon={FileSearch} onClick={fetchTranscript} disabled={isLoading}>
             {isLoading ? 'Searching…' : 'Get transcript'}
+          </Button>
+          <Button
+            icon={downloading === 'transcript-pdf' ? FileDown : FileDown}
+            onClick={() => downloadPdf('transcript-pdf')}
+            disabled={downloading !== '' || !data}
+            variant="ghost"
+          >
+            {downloading === 'transcript-pdf' ? 'Building PDF…' : 'Download PDF'}
           </Button>
         </div>
       </Reveal>
@@ -104,6 +154,13 @@ export default function StudentTranscript({ setSlipData, setActivePage }) {
                       <span className="group inline-flex items-center gap-1 text-[12px] font-semibold text-seal hover:gap-2 transition-all print:hidden">
                         Sessional slip <ChevronRight size={13} />
                       </span>
+                    </button>
+                    <button
+                      onClick={() => downloadPdf('slip-pdf', sess.session)}
+                      disabled={downloading !== ''}
+                      className="group inline-flex items-center gap-1 text-[12px] font-semibold text-mute hover:text-seal transition-all print:hidden ml-4"
+                    >
+                      <FileDown size={13} /> {downloading === 'slip-pdf' ? 'PDF…' : 'PDF'}
                     </button>
                   </div>
                   <table className="ledger">
