@@ -13,6 +13,8 @@ import CourseRegistration from './pages/CourseRegistration';
 import InstitutionSetup from './pages/InstitutionSetup';
 import Landing from './pages/Landing';
 import SignIn from './pages/SignIn';
+import RegisterInstitution from './pages/RegisterInstitution';
+import Approvals from './pages/Approvals';
 import { useInstitutionVersion, refreshInstitution } from './lib/useInstitution';
 import { API, authFetch } from './lib/api';
 
@@ -100,6 +102,16 @@ function App() {
       <SignIn
         onSignedIn={() => { setView('app'); setActivePage('dashboard'); }}
         onBack={() => { setView('landing'); setActivePage('dashboard'); }}
+        onRegister={() => setView('register')}
+      />
+    );
+  }
+
+  if (view === 'register') {
+    return (
+      <RegisterInstitution
+        onDone={() => setView('signin')}
+        onBack={() => setView('signin')}
       />
     );
   }
@@ -132,6 +144,7 @@ function App() {
               {activePage === 'courses' && <CourseManager />}
               {activePage === 'registration' && <CourseRegistration />}
               {activePage === 'institution' && <InstitutionSetup />}
+              {activePage === 'approvals' && <Approvals />}
               {activePage === 'transcript' && (
                 <StudentTranscript
                   setSlipData={setSlipData}

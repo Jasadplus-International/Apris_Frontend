@@ -9,7 +9,7 @@ const RED = '#c8282c';
 const BLUE_DEEP = '#1b3a6b';
 const BLUE = '#2c5697';
 
-export default function SignIn({ onSignedIn, onBack }) {
+export default function SignIn({ onSignedIn, onBack, onRegister }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -137,6 +137,14 @@ export default function SignIn({ onSignedIn, onBack }) {
             your password, contact your institution&rsquo;s administrator.
           </p>
         </motion.div>
+
+        {/* Public self-service onboarding */}
+        <button
+          onClick={onRegister}
+          className="mt-5 w-full text-center text-[13px] text-white/60 hover:text-white transition-colors"
+        >
+          New institution? <span className="underline decoration-2" style={{ textDecorationColor: RED }}>Register your university</span>
+        </button>
 
         <div className="mt-auto py-8 text-center">
           <p className="text-[10.5px] font-mono tracking-[0.2em] uppercase text-white/40">

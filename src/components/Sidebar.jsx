@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardEdit, FileSpreadsheet,
   ScrollText, Building2, UserPlus, BookOpen, Database,
-  Home, LogOut, ChevronDown,
+  Home, LogOut, ChevronDown, ShieldCheck,
 } from 'lucide-react';
 import { useInstitution, useInstitutionVersion, refreshInstitution } from '../lib/useInstitution';
 import { API, authFetch } from '../lib/api';
@@ -18,6 +18,11 @@ const menuItems = [
   { id: 'departments', label: 'Departments', hint: 'Configure', icon: Building2 },
   { id: 'courses', label: 'Courses', hint: 'Catalogue', icon: BookOpen },
   { id: 'institution', label: 'Institution', hint: 'Workbook / .mdb import', icon: Database },
+];
+
+// Operator-only items (appended to the menu when the platform admin is signed in)
+const operatorItems = [
+  { id: 'approvals', label: 'Approvals', hint: 'New institutions', icon: ShieldCheck },
 ];
 
 export default function Sidebar({ setActivePage, activePage, setSlipData, onSignOut }) {
@@ -110,7 +115,7 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
 
       {/* Nav */}
       <nav className="flex-1 px-3 pt-5 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
+        {[...menuItems, ...(isSuperAdmin ? operatorItems : [])].map((item) => {
           const active = activePage === item.id;
           return (
             <button
