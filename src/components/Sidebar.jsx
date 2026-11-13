@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardEdit, FileSpreadsheet,
   ScrollText, Building2, UserPlus, BookOpen, Database,
-  Home, LogOut, ChevronDown, ShieldCheck,
+  Home, LogOut, ChevronDown, ShieldCheck, UserCog,
 } from 'lucide-react';
 import { useInstitution, useInstitutionVersion, refreshInstitution } from '../lib/useInstitution';
 import { API, authFetch } from '../lib/api';
@@ -25,6 +25,12 @@ const operatorItems = [
   { id: 'approvals', label: 'Approvals', hint: 'New institutions', icon: ShieldCheck },
 ];
 
+// Registry-management item (only for university Admin / Developer accounts)
+const MANAGE_ROLES = ['Admin', 'Developer'];
+const managerItems = [
+  { id: 'users', label: 'User accounts', hint: 'Staff access', icon: UserCog },
+];
+
 export default function Sidebar({ setActivePage, activePage, setSlipData, onSignOut }) {
   const inst = useInstitution();
   useInstitutionVersion(); // re-render on institution change
@@ -33,6 +39,9 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
   // exist. Only the platform operator (SUPERADMIN) gets the switcher.
   const isSuperAdmin = (() => {
     try { return localStorage.getItem('arpis_role') === 'SUPERADMIN'; } catch { return false; }
+  })();
+  const myRole = (() => {
+    try { return localStorage.getItem('arpis_role') || ''; } catch { return ''; }
   })();
 
   const [profiles, setProfiles] = useState([]);
@@ -115,7 +124,11 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
 
       {/* Nav */}
       <nav className="flex-1 px-3 pt-5 space-y-1 overflow-y-auto">
-        {[...menuItems, ...(isSuperAdmin ? operatorItems : [])].map((item) => {
+        {(() => {
+          const items = [...menuItems];
+          if (isSuperAdmin) items.push(...operatorItems);
+          else if (MANAGE_ROLES.includes(myRole)) items.splice(4, 0, ...managerItems);
+          return items.map((item) => {
           const active = activePage === item.id;
           return (
             <button
@@ -139,7 +152,8 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
               </span>
             </button>
           );
-        })}
+          });
+        })()}
       </nav>
 
       {/* Home / Log out */}

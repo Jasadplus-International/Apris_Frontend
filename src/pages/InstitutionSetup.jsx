@@ -33,6 +33,8 @@ export default function InstitutionSetup() {
 
   const [stats, setStats] = useState(null);
   const [backups, setBackups] = useState([]);
+  const [dumpFiles, setDumpFiles] = useState([]);
+  const [backingUp, setBackingUp] = useState(false);
   const [password, setPassword] = useState('');
   const [file, setFile] = useState(null);
   const [jobId, setJobId] = useState(null);
@@ -47,11 +49,23 @@ export default function InstitutionSetup() {
     try {
       const [st, bk] = await Promise.all([
         authFetch(`${API}/api/database/stats`).then(r => (r.ok ? r.json() : null)).catch(() => null),
-        authFetch(`${API}/api/database/backups`).then(r => (r.ok ? r.json() : [])).catch(() => []),
+        authFetch(`${API}/api/database/backups`).then(r => (r.ok ? r.json() : { databases: [], dumps: [] })).catch(() => ({ databases: [], dumps: [] })),
       ]);
       setStats(st);
-      setBackups(Array.isArray(bk) ? bk : []);
+      setBackups(Array.isArray(bk) ? bk.map(b => ({ name: b.name, size: b.size, dumpKind: 'import-swap' })) : (bk.databases || []).map(b => ({ ...b, dumpKind: 'import-swap' })));
+      setDumpFiles(bk.dumps || []);
     } catch { setStats(null); }
+  };
+
+  const backupNow = async () => {
+    setBackingUp(true);
+    try {
+      const r = await authFetch(`${API}/api/database/backup`, { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Backup failed');
+      setDumpFiles(d.dumps || []);
+    } catch (e) { setError(String(e.message || e)); }
+    finally { setBackingUp(false); }
   };
 
   useEffect(() => {
@@ -309,9 +323,21 @@ export default function InstitutionSetup() {
             )}
 
             <div className="border-t border-white/10 pt-4">
-              <div className="text-[11px] font-mono tracking-[0.14em] uppercase text-white/45 mb-2.5">Automatic backups</div>
-              {backups.length === 0 ? (
-                <div className="text-[11.5px] text-white/35">None yet — created on every Save &amp; replace.</div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="text-[11px] font-mono tracking-[0.14em] uppercase text-white/45">Backups</div>
+                <button
+                  onClick={backupNow}
+                  disabled={backingUp}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 hover:text-white transition-colors disabled:opacity-40"
+                >
+                  {backingUp ? <Loader2 size={12} className="animate-spin" /> : <HardDriveDownload size={12} />}
+                  {backingUp ? 'Dumping…' : 'Back up now'}
+                </button>
+              </div>
+              {(backups.length === 0 && dumpFiles.length === 0) ? (
+                <div className="text-[11.5px] text-white/35">
+                  None yet. Nightly dumps run automatically; one is also created on every Save &amp; replace.
+                </div>
               ) : (
                 <div className="space-y-1.5">
                   {backups.map(b => (
@@ -320,8 +346,17 @@ export default function InstitutionSetup() {
                       <span className="text-white/35 ml-3 shrink-0">{b.size}</span>
                     </div>
                   ))}
+                  {dumpFiles.map(d => (
+                    <div key={`d-${d.name}`} className="flex items-center justify-between text-[11.5px]">
+                      <span className="font-mono text-brass/80 truncate">{d.name}</span>
+                      <span className="text-white/35 ml-3 shrink-0">{d.size}</span>
+                    </div>
+                  ))}
                 </div>
               )}
+              <div className="text-[10px] text-white/25 mt-2 leading-relaxed">
+                Dumps live in Documents\ARPIS Databases\backups\{inst.code || ''} — 14 per institution are kept.
+              </div>
             </div>
           </div>
         </Reveal>

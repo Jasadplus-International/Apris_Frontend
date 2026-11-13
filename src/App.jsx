@@ -15,6 +15,7 @@ import Landing from './pages/Landing';
 import SignIn from './pages/SignIn';
 import RegisterInstitution from './pages/RegisterInstitution';
 import Approvals from './pages/Approvals';
+import UsersManager from './pages/UsersManager';
 import { useInstitutionVersion, refreshInstitution } from './lib/useInstitution';
 import { API, authFetch } from './lib/api';
 
@@ -50,6 +51,20 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [slipData, setSlipData] = useState({ studentId: '', sessionId: '' });
   const instVersion = useInstitutionVersion(); // pages remount when the university changes
+  const [me, setMe] = useState(() => {
+    // role + username, refreshed on every sign-in / restore
+    let role = '';
+    let username = '';
+    try {
+      role = localStorage.getItem('arpis_role') || '';
+      const tok = localStorage.getItem('arpis_token');
+      if (tok) {
+        const payload = JSON.parse(atob(tok.split('.')[1]));
+        username = payload.sub || '';
+      }
+    } catch {}
+    return { role, username };
+  });
 
   // Dashboard workflow shortcuts navigate via custom event
   useEffect(() => {
@@ -76,18 +91,17 @@ function App() {
           try { localStorage.removeItem('arpis_token'); localStorage.removeItem('arpis_role'); } catch {}
           return;
         }
-        const me = await r.json();
-        try { localStorage.setItem('arpis_role', me.role || ''); } catch {}
-        if (me.institution) {
-          // rebind the server to this university (idempotent if already active)
-          await authFetch(`${API}/api/database/active`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: me.institution }),
-          });
+        const userData = await r.json();
+        try { localStorage.setItem('arpis_role', userData.role || ''); } catch {}
+        setMe({ role: userData.role || '', username: userData.username || '' });
+        if (userData.institution) {
+          await refreshInstitution();
+          setView('app');
+        } else {
+          // operator token — the console's default instance stands; enter as-is
+          await refreshInstitution();
+          setView('app');
         }
-        await refreshInstitution();
-        setView('app');
       } catch { /* backend down — landing stays until signed in */ }
     };
     boot();
@@ -100,7 +114,15 @@ function App() {
   if (view === 'signin') {
     return (
       <SignIn
-        onSignedIn={() => { setView('app'); setActivePage('dashboard'); }}
+        onSignedIn={() => {
+          let username = ''; let role = '';
+          try {
+            role = localStorage.getItem('arpis_role') || '';
+            username = JSON.parse(atob((localStorage.getItem('arpis_token') || '.').split('.')[1])).sub || '';
+          } catch {}
+          setMe({ role, username });
+          setView('app'); setActivePage('dashboard');
+        }}
         onBack={() => { setView('landing'); setActivePage('dashboard'); }}
         onRegister={() => setView('register')}
       />
@@ -145,6 +167,9 @@ function App() {
               {activePage === 'registration' && <CourseRegistration />}
               {activePage === 'institution' && <InstitutionSetup />}
               {activePage === 'approvals' && <Approvals />}
+              {activePage === 'users' && (
+                <UsersManager myRole={me.role} myUsername={me.username} />
+              )}
               {activePage === 'transcript' && (
                 <StudentTranscript
                   setSlipData={setSlipData}
