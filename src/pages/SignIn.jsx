@@ -93,7 +93,7 @@ export default function SignIn({ onSignedIn, onBack, onRegister }) {
                 <input
                   autoFocus
                   className="field icon"
-                  placeholder="e.g. corona_admin"
+                  placeholder="e.g. registry_admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
