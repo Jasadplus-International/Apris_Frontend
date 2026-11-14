@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardEdit, FileSpreadsheet,
   ScrollText, Building2, UserPlus, BookOpen, Database,
-  Home, LogOut, ChevronDown, ShieldCheck, UserCog,
+  Home, LogOut, ChevronDown, ShieldCheck, UserCog, Repeat2,
 } from 'lucide-react';
 import { useInstitution, useInstitutionVersion, refreshInstitution } from '../lib/useInstitution';
 import { API, authFetch } from '../lib/api';
@@ -12,6 +12,7 @@ const menuItems = [
   { id: 'dashboard', label: 'Dashboard', hint: 'Overview', icon: LayoutDashboard },
   { id: 'students', label: 'Student Registry', hint: 'Enrolment records', icon: Users },
   { id: 'results', label: 'Result Entry', hint: 'Scores & grades', icon: ClipboardEdit },
+  { id: 'carryovers', label: 'Carry-overs', hint: 'Repeat tracking', icon: Repeat2 },
   { id: 'registration', label: 'Registration', hint: 'Course registration', icon: UserPlus },
   { id: 'broadsheet', label: 'BroadSheet Mgr', hint: 'Official reports', icon: FileSpreadsheet },
   { id: 'transcript', label: 'Transcripts', hint: 'Per student', icon: ScrollText },

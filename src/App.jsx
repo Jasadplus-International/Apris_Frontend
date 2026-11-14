@@ -5,6 +5,7 @@ import DashboardHome from './pages/DashboardHome';
 import StudentRegistry from './pages/StudentRegistry';
 import BroadSheetManager from './pages/BroadSheetManager';
 import ResultEntry from './pages/ResultEntry';
+import CarryOvers from './pages/CarryOvers';
 import StudentTranscript from './pages/StudentTranscript';
 import StudentSessionSlip from './pages/StudentSessionSlip';
 import DepartmentManager from './pages/DepartmentManager';
@@ -161,6 +162,7 @@ function App() {
               {activePage === 'dashboard' && <DashboardHome />}
               {activePage === 'students' && <StudentRegistry />}
               {activePage === 'results' && <ResultEntry />}
+              {activePage === 'carryovers' && <CarryOvers />}
               {activePage === 'broadsheet' && <BroadSheetManager />}
               {activePage === 'departments' && <DepartmentManager />}
               {activePage === 'courses' && <CourseManager />}
