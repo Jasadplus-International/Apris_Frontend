@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   LifeBuoy, Upload, ClipboardEdit, FileSpreadsheet, ScrollText, Users,
@@ -132,7 +132,7 @@ export default function HelpGuide({ myRole, onDone }) {
         <p>
           <b className="text-ink">Still stuck?</b> Contact the platform team —
           JasadPlus Services International Limited (RC 902237), 9 Ajasa Street, Onikan, Lagos Island ·
-          0705 199 0250 · info@jasadplus.com. <i>ValuePlus Services Guaranteed.</i>
+          +44 7810558239 · +234 803 530 0989 · info@jasadplus.com. <i>ValuePlus Services Guaranteed.</i>
         </p>
       </div>
     </div>

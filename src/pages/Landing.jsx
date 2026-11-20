@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import {
   Upload, Database, FileSpreadsheet, ScrollText, ClipboardEdit,
   GraduationCap, ShieldCheck, ArrowRight, Lock, Printer, Globe2,
@@ -349,7 +349,7 @@ export default function Landing({ onEnter }) {
                 <Phone size={18} className="mt-0.5 shrink-0" style={{ color: RED }} />
                 <div>
                   <div className="font-semibold text-ink">Speak with us</div>
-                  <div className="text-mute mt-0.5">0813 100 9710 · 0709 006 1465 · +234 705 199 0250</div>
+                  <div className="text-mute mt-0.5">+44 7810558239 · +234 803 530 0989</div>
                 </div>
               </li>
               <li className="flex items-start gap-3.5">
