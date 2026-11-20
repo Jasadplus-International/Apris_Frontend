@@ -21,6 +21,34 @@ import HelpGuide from './pages/HelpGuide';
 import { useInstitutionVersion, refreshInstitution } from './lib/useInstitution';
 import { API, authFetch } from './lib/api';
 
+// First-visit guidance: a per-page one-time pointer into the Help guide.
+// This is also how new features announce themselves as they ship.
+const FEATURE_TIPS = {
+  students: 'the Student Registry holds every enrolment record',
+  registration: 'Registration bulk-enrols a level for a session',
+  results: 'Result Entry grades marks as you type and audits every change',
+  carryovers: 'the Carry-overs page tracks failed courses and re-sits',
+  broadsheet: 'the BroadSheet Manager generates the official report bundle',
+  transcript: 'Transcripts give per-student records and PDF documents',
+  users: 'User accounts manages staff logins and your two-factor sign-in',
+  institution: 'the Institution page imports your records (workbook or legacy database)',
+  approvals: 'Approvals is where new institution signups go live',
+};
+const SEEN_KEY = 'arpis_seen_pages'; // per-browser, safe to lose
+
+function seenPages() {
+  try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch { return []; }
+}
+function markPageSeen(page) {
+  try {
+    const seen = seenPages();
+    if (!seen.includes(page)) {
+      seen.push(page);
+      localStorage.setItem(SEEN_KEY, JSON.stringify(seen));
+    }
+  } catch {}
+}
+
 /* Crash guard: a broken page must never blank the whole app */
 class ErrorBoundary extends Component {
   state = { error: null, info: null };
@@ -54,6 +82,7 @@ function App() {
   const [slipData, setSlipData] = useState({ studentId: '', sessionId: '' });
   const instVersion = useInstitutionVersion(); // pages remount when the university changes
   const [menuOpen, setMenuOpen] = useState(false); // mobile drawer
+  const [seenTick, setSeenTick] = useState(0); // re-render after a per-page guide pointer is dismissed
   const [me, setMe] = useState(() => {
     // role + username, refreshed on every sign-in / restore
     let role = '';
@@ -117,14 +146,15 @@ function App() {
   if (view === 'signin') {
     return (
       <SignIn
-        onSignedIn={() => {
+        onSignedIn={(data) => {
           let username = ''; let role = '';
           try {
             role = localStorage.getItem('arpis_role') || '';
             username = JSON.parse(atob((localStorage.getItem('arpis_token') || '.').split('.')[1])).sub || '';
           } catch {}
           setMe({ role, username });
-          setView('app'); setActivePage('dashboard');
+          // brand-new accounts go through the guide before touching records
+          setView('app'); setActivePage(data?.first_login ? 'help' : 'dashboard');
         }}
         onBack={() => { setView('landing'); setActivePage('dashboard'); }}
         onRegister={() => setView('register')}
@@ -173,6 +203,26 @@ function App() {
 
       <main className="flex-1 overflow-y-auto pt-12 md:pt-0">
         <div className="p-4 sm:p-6 xl:p-10 max-w-[1400px] mx-auto min-h-full">
+          {/* First time on a page? Point to the Help guide, once per page */}
+          {FEATURE_TIPS[activePage] && (!seenPages() || !seenPages().includes(activePage)) && (
+            <div className="mb-5 rounded-xl border px-5 py-3.5 text-[13px] flex flex-wrap items-center justify-between gap-3"
+              style={{ borderColor: '#b9d0e8', background: '#eaf2fb', color: '#16233c' }}>
+              <span>
+                <b>New to you:</b> {FEATURE_TIPS[activePage]} — the Help guide walks you through it.
+              </span>
+              <span className="flex items-center gap-2">
+                <button
+                  onClick={() => { markPageSeen(activePage); setSeenTick(t => t + 1); setActivePage('help'); }}
+                  className="rounded-lg text-white font-semibold px-4 py-2 text-[12.5px] hover:opacity-90"
+                  style={{ background: '#2c5697' }}
+                >Open guide</button>
+                <button
+                  onClick={() => { markPageSeen(activePage); setSeenTick(t => t + 1); }}
+                  className="rounded-lg border border-line px-3 py-2 text-[12.5px] text-mute hover:text-ink"
+                >Got it</button>
+              </span>
+            </div>
+          )}
           <ErrorBoundary>
           <AnimatePresence mode="wait">
             <motion.div
@@ -195,7 +245,7 @@ function App() {
               {activePage === 'users' && (
                 <UsersManager myRole={me.role} myUsername={me.username} />
               )}
-              {activePage === 'help' && <HelpGuide myRole={me.role} />}
+              {activePage === 'help' && <HelpGuide myRole={me.role} onDone={() => setActivePage('dashboard')} />}
               {activePage === 'transcript' && (
                 <StudentTranscript
                   setSlipData={setSlipData}

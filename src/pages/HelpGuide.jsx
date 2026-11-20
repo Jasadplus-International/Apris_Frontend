@@ -61,7 +61,7 @@ const SECTIONS = [
   },
 ];
 
-export default function HelpGuide({ myRole }) {
+export default function HelpGuide({ myRole, onDone }) {
   const [open, setOpen] = useState(0);
 
   const toggle = (i) => setOpen(open === i ? -1 : i);
@@ -73,12 +73,20 @@ export default function HelpGuide({ myRole }) {
           <div className="w-10 h-10 rounded-xl grid place-items-center shrink-0" style={{ background: RED }}>
             <LifeBuoy size={19} className="text-white" strokeWidth={2} />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="font-display text-xl font-semibold tracking-tight">Help guide</h1>
             <p className="text-[12px] text-white/55 mt-0.5">
               ARPIS — a product of JasadPlus Services International · how to run every part of the platform
             </p>
           </div>
+          {onDone && (
+            <button
+              onClick={onDone}
+              className="shrink-0 rounded-lg border border-white/25 hover:border-white/50 px-4 py-2 text-[12.5px] font-semibold text-white transition-colors"
+            >
+              Go to dashboard
+            </button>
+          )}
         </div>
       </div>
 
