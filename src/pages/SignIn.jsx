@@ -14,6 +14,17 @@ export default function SignIn({ onSignedIn, onBack, onRegister }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mfa, setMfa] = useState(null); // challenge after password, when MFA is on
+  const [code, setCode] = useState('');
+
+  const finish = async (data) => {
+    try {
+      localStorage.setItem('arpis_token', data.access_token);
+      localStorage.setItem('arpis_role', data.role || '');
+    } catch {}
+    await refreshInstitution();
+    onSignedIn(data);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -34,16 +45,34 @@ export default function SignIn({ onSignedIn, onBack, onRegister }) {
         return;
       }
       const data = await r.json();
-      // Keep the session client-side; the server has already locked onto the
-      // university that owns this account. SuperAdmin sees the platform tools.
-      try {
-        localStorage.setItem('arpis_token', data.access_token);
-        localStorage.setItem('arpis_role', data.role || '');
-      } catch {}
-      await refreshInstitution();
-      onSignedIn(data);
+      if (data.mfa_required) { // two-factor step-up: ask for the authenticator code
+        setMfa(data);
+        setBusy(false);
+        return;
+      }
+      await finish(data);
     } catch {
       setError('Could not reach the server. Is the backend running?');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitMfa = async (e) => {
+    e.preventDefault();
+    if (!code.trim() || busy) return;
+    setBusy(true); setError('');
+    try {
+      const r = await authFetch(`${API}/api/auth/mfa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pre_token: mfa.challenge_token, code: code.trim() }),
+      });
+      const data = await r.json().catch(() => null);
+      if (!r.ok) { setError(data?.detail || 'That code is not valid.'); return; }
+      await finish(data);
+    } catch {
+      setError('Could not reach the server.');
     } finally {
       setBusy(false);
     }
@@ -85,6 +114,40 @@ export default function SignIn({ onSignedIn, onBack, onRegister }) {
             </div>
           </div>
 
+          {mfa ? (
+            <form onSubmit={submitMfa} className="pt-6 space-y-4">
+              <p className="text-[13px] text-mute">
+                Two-factor sign-in — open your authenticator app and enter the
+                6-digit code for <span className="font-mono text-ink">{username.trim()}</span>.
+              </p>
+              <div>
+                <label className="block text-[12px] font-semibold text-mute mb-1.5">Authenticator code</label>
+                <input
+                  autoFocus
+                  className="field font-mono text-[16px] tracking-[0.4em] text-center"
+                  inputMode="numeric"
+                  placeholder="______"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/[^\d]/g, ''))}
+                />
+              </div>
+              {error && (
+                <div className="text-[12.5px] rounded-lg px-3 py-2.5" style={{ background: '#fdecec', color: '#a4241e', border: '1px solid #f5c6c4' }}>
+                  {error}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={busy || code.length !== 6}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-white font-semibold px-6 py-3.5 text-[14.5px] transition-opacity hover:opacity-90 disabled:opacity-45 shadow-lg"
+                style={{ background: RED }}
+              >
+                {busy ? <Loader2 size={17} className="animate-spin" /> : <Lock size={15} />}
+                {busy ? 'Checking…' : 'Verify code'}
+              </button>
+            </form>
+          ) : (
           <form onSubmit={submit} className="pt-6 space-y-4">
             <div>
               <label className="block text-[12px] font-semibold text-mute mb-1.5">Username</label>
@@ -131,6 +194,7 @@ export default function SignIn({ onSignedIn, onBack, onRegister }) {
               {busy ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+          )}
 
           <p className="mt-6 text-[11px] text-mute leading-relaxed">
             Your account is issued by your institution&rsquo;s registry. If you have forgotten

@@ -79,7 +79,7 @@ export default function RegisterInstitution({ onDone, onBack }) {
           </motion.div>
           <div className="mt-auto py-8 text-center">
             <p className="text-[10.5px] font-mono tracking-[0.2em] uppercase text-white/40">
-              A service of JasadPlus Services International
+              ARPIS — a product of JasadPlus Services International
             </p>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function RegisterInstitution({ onDone, onBack }) {
               </div>
             </div>
             <div>
-              <label className="block text-[12px] font-semibold text-mute mb-1.5">Contact email <span className="font-normal text-mute/70">(optional)</span></label>
+              <label className="block text-[12px] font-semibold text-mute mb-1.5">Contact email</label>
               <div className="relative">
                 <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-mute" />
                 <input type="email" className="field icon" placeholder="registry@institution.edu.ng"
@@ -162,7 +162,7 @@ export default function RegisterInstitution({ onDone, onBack }) {
 
             <button
               type="submit"
-              disabled={busy || !name.trim() || !username.trim() || !password}
+              disabled={busy || !name.trim() || !username.trim() || !password || !email.trim()}
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl text-white font-semibold px-6 py-3.5 text-[14.5px] transition-opacity hover:opacity-90 disabled:opacity-45 shadow-lg"
               style={{ background: RED }}
             >
@@ -180,7 +180,7 @@ export default function RegisterInstitution({ onDone, onBack }) {
 
         <div className="mt-auto py-8 text-center">
           <p className="text-[10.5px] font-mono tracking-[0.2em] uppercase text-white/40">
-            A service of JasadPlus Services International
+            ARPIS — a product of JasadPlus Services International
           </p>
         </div>
       </div>

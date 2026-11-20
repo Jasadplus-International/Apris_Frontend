@@ -3,47 +3,64 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardEdit, FileSpreadsheet,
   ScrollText, Building2, UserPlus, BookOpen, Database,
-  Home, LogOut, ChevronDown, ShieldCheck, UserCog, Repeat2,
+  Home, LogOut, ChevronDown, ShieldCheck, UserCog, Repeat2, LifeBuoy, X,
 } from 'lucide-react';
 import { useInstitution, useInstitutionVersion, refreshInstitution } from '../lib/useInstitution';
 import { API, authFetch } from '../lib/api';
 
-const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', hint: 'Overview', icon: LayoutDashboard },
-  { id: 'students', label: 'Student Registry', hint: 'Enrolment records', icon: Users },
-  { id: 'results', label: 'Result Entry', hint: 'Scores & grades', icon: ClipboardEdit },
-  { id: 'carryovers', label: 'Carry-overs', hint: 'Repeat tracking', icon: Repeat2 },
-  { id: 'registration', label: 'Registration', hint: 'Course registration', icon: UserPlus },
-  { id: 'broadsheet', label: 'BroadSheet Mgr', hint: 'Official reports', icon: FileSpreadsheet },
-  { id: 'transcript', label: 'Transcripts', hint: 'Per student', icon: ScrollText },
-  { id: 'departments', label: 'Departments', hint: 'Configure', icon: Building2 },
-  { id: 'courses', label: 'Courses', hint: 'Catalogue', icon: BookOpen },
-  { id: 'institution', label: 'Institution', hint: 'Workbook / .mdb import', icon: Database },
+// Menus grouped by category — the labels double as plain-language descriptions
+// of what each cluster is for.
+const MENU_GROUPS = [
+  { label: 'Records', items: [
+      { id: 'dashboard', label: 'Dashboard', hint: 'Overview', icon: LayoutDashboard },
+      { id: 'students', label: 'Student Registry', hint: 'Enrolment records', icon: Users },
+      { id: 'registration', label: 'Registration', hint: 'Course registration', icon: UserPlus },
+      { id: 'carryovers', label: 'Carry-overs', hint: 'Repeat tracking', icon: Repeat2 },
+      { id: 'results', label: 'Result Entry', hint: 'Scores & grades', icon: ClipboardEdit },
+  ]},
+  { label: 'Reports', items: [
+      { id: 'broadsheet', label: 'BroadSheet Mgr', hint: 'Official reports', icon: FileSpreadsheet },
+      { id: 'transcript', label: 'Transcripts', hint: 'Per student', icon: ScrollText },
+  ]},
+  { label: 'Setup', items: [
+      { id: 'departments', label: 'Departments', hint: 'Configure', icon: Building2 },
+      { id: 'courses', label: 'Courses', hint: 'Catalogue', icon: BookOpen },
+      { id: 'institution', label: 'Institution', hint: 'Workbook / .mdb import', icon: Database },
+  ]},
 ];
 
-// Operator-only items (appended to the menu when the platform admin is signed in)
-const operatorItems = [
-  { id: 'approvals', label: 'Approvals', hint: 'New institutions', icon: ShieldCheck },
-];
-
-// Registry-management item (only for university Admin / Developer accounts)
 const MANAGE_ROLES = ['Admin', 'Developer'];
-const managerItems = [
+const ADMIN_GROUP = { label: 'Administration', items: [
   { id: 'users', label: 'User accounts', hint: 'Staff access', icon: UserCog },
-];
+]};
+const OPERATOR_GROUP = { label: 'Platform', items: [
+  { id: 'approvals', label: 'Approvals', hint: 'New institutions', icon: ShieldCheck },
+]};
+const SUPPORT_GROUP = { label: 'Support', items: [
+  { id: 'help', label: 'Help guide', hint: 'How to use ARPIS', icon: LifeBuoy },
+]};
 
-export default function Sidebar({ setActivePage, activePage, setSlipData, onSignOut }) {
+export default function Sidebar({ setActivePage, activePage, setSlipData, onSignOut, menuOpen, onCloseMenu }) {
   const inst = useInstitution();
   useInstitutionVersion(); // re-render on institution change
 
-  // Platform isolation: a university must never learn that other universities
-  // exist. Only the platform operator (SUPERADMIN) gets the switcher.
   const isSuperAdmin = (() => {
     try { return localStorage.getItem('arpis_role') === 'SUPERADMIN'; } catch { return false; }
   })();
   const myRole = (() => {
     try { return localStorage.getItem('arpis_role') || ''; } catch { return ''; }
   })();
+
+  // compose the groups for this role
+  const groups = MENU_GROUPS
+    .concat(MANAGE_ROLES.includes(myRole) ? [ADMIN_GROUP] : [])
+    .concat(isSuperAdmin ? [OPERATOR_GROUP] : [])
+    .concat([SUPPORT_GROUP]);
+
+  const nav = (id) => {
+    setActivePage(id);
+    onCloseMenu?.();
+  };
 
   const [profiles, setProfiles] = useState([]);
   const [switching, setSwitching] = useState(false);
@@ -72,7 +89,7 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
       });
       if (r.ok) {
         refreshInstitution(); // every page re-reads the new profile
-        setActivePage('dashboard');
+        nav('dashboard');
       }
     } finally {
       setSwitching(false);
@@ -80,11 +97,21 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
   };
 
   return (
-    <aside className="w-[248px] shrink-0 bg-ink text-white flex flex-col h-screen">
+    <aside className={`fixed md:static inset-y-0 left-0 z-50 w-[262px] shrink-0 bg-ink text-white flex flex-col h-screen
+      transition-transform duration-200 md:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* drawer close (mobile only) */}
+      <button
+        onClick={onCloseMenu}
+        aria-label="Close menu"
+        className="md:hidden absolute right-3 top-3 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10"
+      >
+        <X size={17} />
+      </button>
+
       {/* Brand */}
-      <div className="px-6 pt-6 pb-4 border-b border-white/10">
+      <div className="px-6 pt-6 pb-4 border-b border-white/10 pr-10 md:pr-6">
         <button
-          onClick={() => setActivePage('landing')}
+          onClick={() => nav('landing')}
           title="Back to the home page"
           className="w-full text-left"
         >
@@ -98,7 +125,7 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
             )}
             <div className="min-w-0">
               <div className="font-display text-[16px] font-semibold tracking-tight leading-tight truncate">{inst.display_name || 'ARPIS'}</div>
-              <div className="text-[9.5px] tracking-[0.2em] text-white/45 mt-0.5 font-mono uppercase">Records · v2.0</div>
+              <div className="text-[9.5px] tracking-[0.2em] text-white/45 mt-0.5 font-mono uppercase">ARPIS by JasadPlus</div>
             </div>
           </div>
         </button>
@@ -123,44 +150,48 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 pt-5 space-y-1 overflow-y-auto">
-        {(() => {
-          const items = [...menuItems];
-          if (isSuperAdmin) items.push(...operatorItems);
-          else if (MANAGE_ROLES.includes(myRole)) items.splice(4, 0, ...managerItems);
-          return items.map((item) => {
-          const active = activePage === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActivePage(item.id)}
-              className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                active ? 'text-white' : 'text-white/55 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {active && (
-                <motion.span
-                  layoutId="nav-active"
-                  className="absolute inset-0 rounded-lg bg-white/10"
-                  transition={{ type: 'spring', bounce: 0.2, duration: 0.45 }}
-                />
-              )}
-              <item.icon size={17.5} strokeWidth={2} className={`relative z-10 transition-colors ${active ? 'text-brass' : ''}`} />
-              <span className="relative z-10 flex-1">
-                <span className="block text-[13.5px] font-medium leading-tight">{item.label}</span>
-                <span className={`block text-[10.5px] leading-tight mt-px ${active ? 'text-white/45' : 'text-white/25'}`}>{item.hint}</span>
-              </span>
-            </button>
-          );
-          });
-        })()}
+      {/* Grouped nav */}
+      <nav className="flex-1 px-3 pt-4 pb-2 space-y-4 overflow-y-auto">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <div className="px-3 pb-1.5 text-[9.5px] font-mono tracking-[0.22em] uppercase text-white/30 select-none">
+              {group.label}
+            </div>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = activePage === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => nav(item.id)}
+                    className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                      active ? 'text-white' : 'text-white/55 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="nav-active"
+                        className="absolute inset-0 rounded-lg bg-white/10"
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.45 }}
+                      />
+                    )}
+                    <item.icon size={17.5} strokeWidth={2} className={`relative z-10 transition-colors ${active ? 'text-brass' : ''}`} />
+                    <span className="relative z-10 flex-1 min-w-0">
+                      <span className="block text-[13.5px] font-medium leading-tight">{item.label}</span>
+                      <span className={`block text-[10.5px] leading-tight mt-px ${active ? 'text-white/45' : 'text-white/25'}`}>{item.hint}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Home / Log out */}
       <div className="px-3 pb-3 space-y-1">
         <button
-          onClick={() => setActivePage('landing')}
+          onClick={() => nav('landing')}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/55 hover:text-white hover:bg-white/5 transition-colors"
         >
           <Home size={17} strokeWidth={2} />
@@ -172,6 +203,7 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
               localStorage.removeItem('arpis_token');
               localStorage.removeItem('arpis_role');
             } catch {}
+            onCloseMenu?.();
             onSignOut?.();
           }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/55 hover:text-[#ff8f94] hover:bg-white/5 transition-colors"
@@ -184,7 +216,8 @@ export default function Sidebar({ setActivePage, activePage, setSlipData, onSign
       {/* Footer */}
       <div className="px-5 pb-5 pt-3 border-t border-white/10 text-[10.5px] text-white/35 leading-relaxed">
         <div className="font-mono tracking-wide uppercase text-white/45">{inst.caps_name || 'ARPIS'}</div>
-        <div className="mt-1">Powered by JasadPlus Services International</div>
+        <div className="mt-2 text-white/40">ARPIS is a product of</div>
+        <div className="text-white/55 font-medium">JasadPlus Services International</div>
       </div>
     </aside>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, UserPlus, KeyRound, ShieldCheck, Loader2, ShieldOff, ShieldAlert, UserCog,
+  Users, UserPlus, KeyRound, ShieldCheck, Loader2, ShieldOff, ShieldAlert, UserCog, QrCode, Lock,
 } from 'lucide-react';
 import { PageHeader, Button, Reveal } from '../components/ui';
 import { API, authFetch } from '../lib/api';
@@ -16,6 +16,109 @@ const ROLE_HINT = {
   Lecturer: 'Enters scores, views reports',
   Standard: 'Read-only access',
 };
+
+function MfaCard({ myUsername }) {
+  const [status, setStatus] = useState(null);
+  const [qr, setQr] = useState(null);
+  const [secret, setSecret] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null);
+
+  const load = () =>
+    authFetch(`${API}/api/auth/mfa/status`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(s => { if (s) setStatus(s); })
+      .catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const setup = async () => {
+    setBusy(true); setNote(null);
+    try {
+      const r = await authFetch(`${API}/api/auth/mfa/setup`, { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Setup failed');
+      setQr(d.qr); setSecret(d.secret); setStatus({ enabled: false, enrolling: true });
+    } catch (e) { setNote({ bad: true, text: String(e.message || e) }); }
+    finally { setBusy(false); }
+  };
+
+  const act = async (path, body, okText) => {
+    setBusy(true); setNote(null);
+    try {
+      const r = await authFetch(`${API}/api/auth/mfa/${path}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Failed');
+      if (path === 'activate') { setNote({ ok: true, text: okText }); setQr(null); setSecret(''); setCode(''); }
+      await load();
+    } catch (e) { setNote({ bad: true, text: String(e.message || e) }); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Reveal>
+      <div className="bg-white border border-line rounded-xl p-6 mb-6">
+        <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+          <Lock size={17} style={{ color: BRAND_BLUE }} className="shrink-0" />
+          <h3 className="font-display text-[16px] font-semibold text-ink">My sign-in security</h3>
+          {status?.enabled ? <span className="stamp" style={{ color: '#1f7a4d' }}>MFA on</span> : <span className="stamp text-mute">MFA off</span>}
+        </div>
+        <p className="text-[12px] text-mute mb-4">
+          Two-factor sign-in for <span className="font-mono text-ink">{myUsername}</span>: after your password, the platform
+          asks for a 6-digit code from an authenticator app (Google Authenticator, Microsoft Authenticator, Authy).
+        </p>
+
+        {note && (
+          <div className={`mb-3 text-[12.5px] rounded-lg px-3 py-2 ${note.bad ? 'text-fail bg-fail/5 border border-fail/25' : 'text-pass bg-pass/5 border border-pass/30'}`}>
+            {note.text}
+          </div>
+        )}
+
+        {status?.enabled ? (
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-44">
+              <label className="block text-[12px] font-semibold text-mute mb-1.5">Confirm a code to disable</label>
+              <input className="field font-mono text-[13px]" inputMode="numeric" placeholder="6-digit code"
+                value={code} onChange={e => setCode(e.target.value)} maxLength={6} />
+            </div>
+            <Button variant="ghost" icon={busy ? Loader2 : ShieldOff} onClick={() => act('off', { code }, '')} disabled={busy || code.length !== 6}>
+              Disable MFA
+            </Button>
+          </div>
+        ) : qr ? (
+          <div className="flex flex-col sm:flex-row gap-6 items-start">
+            <img src={qr} alt="MFA QR code" className="w-40 h-40 rounded-lg border border-line bg-white" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[12.5px] text-mute leading-relaxed mb-2">
+                1 · Scan with your authenticator app, or type this key manually:<br />
+                <span className="font-mono text-[11px] text-ink break-all">{secret}</span><br />
+                2 · Enter the 6-digit code it shows:
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="w-40">
+                  <input className="field font-mono text-[13px]" inputMode="numeric" placeholder="6-digit code"
+                    value={code} onChange={e => setCode(e.target.value)} maxLength={6} />
+                </div>
+                <Button icon={busy ? Loader2 : QrCode} onClick={() => act('activate', { code }, 'MFA enabled — your next sign-in will ask for a code.')}
+                  disabled={busy || code.length !== 6}>
+                  {busy ? 'Verifying…' : 'Turn on MFA'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Button icon={busy ? Loader2 : ShieldCheck} onClick={setup} disabled={busy}>
+            {busy ? 'Preparing…' : 'Enable two-factor sign-in'}
+          </Button>
+        )}
+      </div>
+    </Reveal>
+  );
+}
+
+const BRAND_BLUE = '#2c5697';
 
 export default function UsersManager({ myRole, myUsername }) {
   const [users, setUsers] = useState(null);
@@ -66,6 +169,8 @@ export default function UsersManager({ myRole, myUsername }) {
         title="User accounts"
         subtitle="The people at your institution who work with records. Accounts live strictly inside your university's database — no other institution exists as far as this list is concerned."
       />
+
+      <MfaCard myUsername={myUsername} />
 
       {note && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}

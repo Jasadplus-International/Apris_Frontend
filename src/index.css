@@ -115,6 +115,16 @@ body {
 /* input with a leading icon — keeps text clear of the icon */
 .field.icon { padding-left: 36px; }
 
+/* ===== mobile boundary polish ===== */
+/* wide ledger tables scroll inside their card, never push the page sideways */
+.doc-sheet { overflow-x: auto; }
+/* never let a stack of buttons overflow the card edge */
+.btn-row, .pt-8 { }
+@media (max-width: 640px) {
+  input[type="number"] { font-size: 16px; } /* stops iOS zoom-in on focus */
+  .font-mono.text-\[16px\] { letter-spacing: 0.25em; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

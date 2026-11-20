@@ -17,6 +17,7 @@ import SignIn from './pages/SignIn';
 import RegisterInstitution from './pages/RegisterInstitution';
 import Approvals from './pages/Approvals';
 import UsersManager from './pages/UsersManager';
+import HelpGuide from './pages/HelpGuide';
 import { useInstitutionVersion, refreshInstitution } from './lib/useInstitution';
 import { API, authFetch } from './lib/api';
 
@@ -52,6 +53,7 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [slipData, setSlipData] = useState({ studentId: '', sessionId: '' });
   const instVersion = useInstitutionVersion(); // pages remount when the university changes
+  const [menuOpen, setMenuOpen] = useState(false); // mobile drawer
   const [me, setMe] = useState(() => {
     // role + username, refreshed on every sign-in / restore
     let role = '';
@@ -141,15 +143,36 @@ function App() {
 
   return (
     <div className="flex h-screen bg-paper font-sans">
+      {/* mobile top bar with the drawer toggle */}
+      <div className="md:hidden fixed top-0 inset-x-0 z-40 bg-ink text-white h-12 flex items-center px-4 gap-3 shadow-lg">
+        <button
+          onClick={() => setMenuOpen(true)}
+          aria-label="Open menu"
+          className="p-1.5 rounded-lg hover:bg-white/10"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <span className="font-display font-semibold tracking-tight text-[15px]">ARPIS</span>
+        <span className="text-[9.5px] font-mono tracking-[0.18em] uppercase text-white/40">by JasadPlus</span>
+      </div>
+      {/* scrim behind the mobile drawer */}
+      <div
+        className={`md:hidden fixed inset-0 bg-black/50 z-40 transition-opacity ${menuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setMenuOpen(false)}
+      />
       <Sidebar
         setActivePage={setActivePage}
         activePage={activePage}
         setSlipData={setSlipData}
+        menuOpen={menuOpen}
+        onCloseMenu={() => setMenuOpen(false)}
         onSignOut={() => { setSlipData({ studentId: '', sessionId: '' }); setView('signin'); setActivePage('dashboard'); }}
       />
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-8 xl:p-10 max-w-[1400px] mx-auto min-h-full">
+      <main className="flex-1 overflow-y-auto pt-12 md:pt-0">
+        <div className="p-4 sm:p-6 xl:p-10 max-w-[1400px] mx-auto min-h-full">
           <ErrorBoundary>
           <AnimatePresence mode="wait">
             <motion.div
@@ -172,6 +195,7 @@ function App() {
               {activePage === 'users' && (
                 <UsersManager myRole={me.role} myUsername={me.username} />
               )}
+              {activePage === 'help' && <HelpGuide myRole={me.role} />}
               {activePage === 'transcript' && (
                 <StudentTranscript
                   setSlipData={setSlipData}
